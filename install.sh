@@ -34,6 +34,15 @@ install_docker_rhel() {
     sudo systemctl start docker
 }
 
+# After installation: Set up Docker group and permissions
+configure_docker_post_install() {
+    echo "Configuring Docker group and permissions..."
+    sudo groupadd docker || true  # Create the Docker group if it doesn't exist
+    sudo usermod -aG docker $USER  # Add the current user to the Docker group
+    newgrp docker  # Apply group changes immediately
+    echo "Docker group configured. You can now run Docker commands without sudo."
+}
+
 # Check and install Docker
 if ! command -v docker &> /dev/null
 then
