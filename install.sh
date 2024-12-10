@@ -76,7 +76,6 @@ if ! docker --version &> /dev/null; then
         echo "[ERROR] OS detection failed. Unable to proceed."
         exit 1
     fi
-
     # Perform post-installation steps
     configure_docker_post_install
 else
