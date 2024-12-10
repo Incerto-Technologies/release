@@ -81,10 +81,22 @@ configure_docker_post_install() {
     echo "[SUCCESS] Docker group configured."
 }
 
+# Function to verify Docker installation and functionality
+is_docker_installed() {
+    if ! command -v docker &> /dev/null; then
+        echo "[ERROR] Docker is not installed or not in PATH."
+        return 1
+    fi
+    if ! docker --version &> /dev/null; then
+        echo "[ERROR] Docker command exists but is not functional."
+        return 1
+    fi
+    echo "[INFO] Docker is installed and functional. Version: $(docker --version)"
+    return 0
+}
+
 # Check and install Docker
-if command -v docker &> /dev/null && docker --version &> /dev/null; then
-    echo "[INFO] Docker is already installed. Version: $(docker --version)"
-else
+if ! is_docker_installed; then
     echo "[INFO] Docker is not installed. Proceeding with installation..."
     if [ -f /etc/os-release ]; then
         . /etc/os-release
