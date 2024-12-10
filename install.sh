@@ -67,6 +67,7 @@ install_docker_rhel() {
             sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
             sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
             sudo systemctl enable --now docker
+            echo "[SUCCESS] Docker installed on RHEL."
             return
         fi
     fi
@@ -77,8 +78,7 @@ configure_docker_post_install() {
     echo "[INFO] Configuring Docker group and permissions..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    newgrp docker  # Apply group changes immediately
-    echo "[SUCCESS] Docker group configured. You can now run Docker commands without sudo."
+    echo "[SUCCESS] Docker group configured. Please logout and log back in. And re-run the script."
 }
 
 # Check and install Docker
@@ -134,20 +134,20 @@ fi
 echo "[SUCCESS] Configuration file downloaded successfully."
 
 # Download .env file and handle backup if it already exists
-echo "[INFO] Checking for an existing configuration file..."
+echo "[INFO] Checking for an existing env file..."
 if [ -f "$COLLECTOR_ENV_FILE" ]; then
-    echo "[INFO] Configuration file found. Creating a backup..."
+    echo "[INFO] env file found. Creating a backup..."
     mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
     echo "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE."
 fi
 
-echo "[INFO] Downloading the latest configuration file..."
+echo "[INFO] Downloading the latest env file..."
 curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
 if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to download the configuration file. Exiting."
+    echo "[ERROR] Failed to download the env file. Exiting."
     exit 1
 fi
-echo "[SUCCESS] Configuration file downloaded successfully."
+echo "[SUCCESS] env file downloaded successfully."
 
 # Fetch hostID from backend
 # echo "[INFO] Fetching hostID from the backend..."
