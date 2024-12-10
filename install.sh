@@ -131,7 +131,7 @@ echo "[SUCCESS] Configuration file downloaded successfully."
 #     echo "[ERROR] Failed to fetch hostID. Exiting."
 #     exit 1
 # fi
-HOST_ID="0000000000"
+HOST_ID="00000000000000000000000000"
 echo "[INFO] HostID fetched: $HOST_ID"
 
 # Run the new container
