@@ -57,9 +57,10 @@ configure_docker_post_install() {
 }
 
 # Check and install Docker
-if ! command -v docker &> /dev/null
-then
-    echo "[INFO] Docker not found. Starting installation process..."
+if command -v docker &> /dev/null && docker --version &> /dev/null; then
+    echo "[INFO] Docker is already installed. Version: $(docker --version)"
+else
+    echo "[INFO] Docker is not installed. Proceeding with installation..."
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
@@ -74,11 +75,8 @@ then
         echo "[ERROR] OS detection failed. Unable to proceed."
         exit 1
     fi
-
     # Perform post-installation steps
     configure_docker_post_install
-else
-    echo "[INFO] Docker is already installed. Skipping installation."
 fi
 
 # Pull the latest image from public ECR
@@ -138,6 +136,6 @@ echo "[INFO] HostID fetched: $HOST_ID"
 
 # Run the new container
 echo "[INFO] Starting a new container with the latest image..."
-docker run --name incerto-collector --env-file ./.env -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
+docker run -d --name incerto-collector --env-file ./.env -v $(pwd)/config.yaml:/config.yaml -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
 
 echo "[SUCCESS] Container is up and running."
