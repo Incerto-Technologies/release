@@ -73,6 +73,15 @@ install_docker_rhel() {
     fi
 }
 
+# After installation: Set up Docker group and permissions
+configure_docker_post_install() {
+    echo "[INFO] Configuring Docker group and permissions..."
+    sudo groupadd docker || true  # Create the Docker group if it doesn't exist
+    sudo usermod -aG docker $USER  # Add the current user to the Docker group
+    sudo su - $USER
+    echo "[SUCCESS] Docker group configured."
+}
+
 # Function to verify Docker installation and functionality
 is_docker_installed() {
     if ! command -v docker &> /dev/null; then
@@ -107,15 +116,6 @@ if ! is_docker_installed; then
     # Perform post-installation steps
     configure_docker_post_install
 fi
-
-# After installation: Set up Docker group and permissions
-configure_docker_post_install() {
-    echo "[INFO] Configuring Docker group and permissions..."
-    sudo groupadd docker || true  # Create the Docker group if it doesn't exist
-    sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    sudo su - $USER
-    echo "[SUCCESS] Docker group configured."
-}
 
 # Pull the latest image from public ECR
 echo "[INFO] Pulling the latest Docker image from Public ECR..."
