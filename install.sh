@@ -93,7 +93,7 @@ is_docker_installed() {
 }
 
 # Check and install Docker
-if ! is_docker_installed; then
+if is_docker_installed; then
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
