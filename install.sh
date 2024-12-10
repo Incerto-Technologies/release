@@ -59,9 +59,10 @@ configure_docker_post_install() {
     echo "[SUCCESS] Docker group configured. You can now run Docker commands without sudo."
 }
 
-# Check and install Docker
-if ! docker --version &> /dev/null; then
-    echo "[INFO] Docker not found. Starting installation process..."
+if command -v docker &> /dev/null && docker --version &> /dev/null; then
+    echo "[INFO] Docker is already installed. Version: $(docker --version)"
+else
+    echo "[INFO] Docker is not installed. Proceeding with installation..."
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
@@ -78,9 +79,8 @@ if ! docker --version &> /dev/null; then
     fi
     # Perform post-installation steps
     configure_docker_post_install
-else
-    echo "[INFO] Docker is already installed. Version: $(docker --version)"
 fi
+
 
 # Pull the latest image from public ECR
 echo "[INFO] Pulling the latest Docker image from Public ECR..."
