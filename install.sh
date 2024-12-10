@@ -172,4 +172,7 @@ run_collector() {
 }
 
 install_docker
+
+sleep 5
+
 run_collector
