@@ -112,8 +112,8 @@ if [ $? -ne 0 ]; then
 fi
 echo "[SUCCESS] Configuration file downloaded successfully."
 
-# Start the new container
+# Run the new container
 echo "[INFO] Starting a new container with the latest image..."
-docker run -d --name $CONTAINER_NAME -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
+docker run -d --name $CONTAINER_NAME -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG -v $(pwd)/config.yaml:/config.yaml
 
 echo "[SUCCESS] Container is up and running."
