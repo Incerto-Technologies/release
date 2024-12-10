@@ -84,11 +84,11 @@ configure_docker_post_install() {
 # Function to verify Docker installation and functionality
 is_docker_installed() {
     if ! command -v docker &> /dev/null; then
-        echo "[ERROR] Docker is not installed or not in PATH."
+        echo "[INFO] Docker is not installed or not in PATH."
         return 1
     fi
     if ! docker --version &> /dev/null; then
-        echo "[ERROR] Docker command exists but is not functional."
+        echo "[INFO] Docker command exists but is not functional."
         return 1
     fi
     echo "[INFO] Docker is installed and functional. Version: $(docker --version)"
