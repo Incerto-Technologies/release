@@ -113,6 +113,6 @@ echo "[SUCCESS] Configuration file downloaded successfully."
 
 # Run the new container
 echo "[INFO] Starting a new container with the latest image..."
-docker run --name incerto-collector -v $(pwd)/config.yaml:/config.yaml -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
+docker run -d --name incerto-collector -v $(pwd)/config.yaml:/config.yaml -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
 
 echo "[SUCCESS] Container is up and running."
