@@ -86,10 +86,10 @@ configure_docker_post_install() {
 is_docker_installed() {
     if command -v docker; then
         echo "[INFO] Docker already installed. Version: $(docker --version)"
-        return 1
+        return 0
     fi
     echo "[INFO] Docker doesn't exists."
-    return 0
+    return 1
 }
 
 # Check and install Docker
