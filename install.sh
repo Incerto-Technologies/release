@@ -75,11 +75,13 @@ fi
 echo "[INFO] Pulling the latest Docker image from Public ECR..."
 docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
-# Stop and remove the older container if it exists
-if [ "$(docker ps -q -f name=$CONTAINER_NAME)" ]; then
-    echo "[INFO] Stopping the existing container..."
-    docker stop $CONTAINER_NAME
-    docker rm $CONTAINER_NAME
+# Stop and remove the existing container if it exists
+if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
+    echo "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it..."
+    docker rm -f $CONTAINER_NAME
+    echo "[SUCCESS] Existing container removed."
+else
+    echo "[INFO] No existing container with the name $CONTAINER_NAME found."
 fi
 
 # Download config file and handle backup if it already exists
