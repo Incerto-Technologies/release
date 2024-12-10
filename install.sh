@@ -79,7 +79,7 @@ configure_docker_post_install() {
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
     newgrp docker
-    echo "[SUCCESS] Docker group configured. "
+    echo "[SUCCESS] Docker group configured. Please logout and log back in."
 }
 
 # Check and install Docker
@@ -100,6 +100,7 @@ install_docker() {
         esac
         # Perform post-installation steps
         configure_docker_post_install
+        exit 1
     else
         echo "[ERROR] OS detection failed. Unable to proceed."
         exit 1
