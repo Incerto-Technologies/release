@@ -100,72 +100,76 @@ install_docker() {
         esac
         # Perform post-installation steps
         configure_docker_post_install
-        exit 1
+        exit 0
     else
         echo "[ERROR] OS detection failed. Unable to proceed."
         exit 1
     fi
 }
 
+run_collector() {
+    # Pull the latest image from public ECR
+    echo "[INFO] Pulling the latest Docker image from Public ECR..."
+    docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
+
+    # Stop and remove the existing container if it exists
+    if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
+        echo "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it..."
+        docker rm -f $CONTAINER_NAME
+        echo "[SUCCESS] Existing container removed."
+    else
+        echo "[INFO] No existing container with the name $CONTAINER_NAME found."
+    fi
+
+    # Download config file and handle backup if it already exists
+    echo "[INFO] Checking for an existing configuration file..."
+    if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
+        echo "[INFO] Configuration file found. Creating a backup..."
+        mv "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_BACKUP_FILE"
+        echo "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE."
+    fi
+
+    echo "[INFO] Downloading the latest configuration file..."
+    curl -fsSL -o "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
+    if [ $? -ne 0 ]; then
+        echo "[ERROR] Failed to download the configuration file. Exiting."
+        exit 1
+    fi
+    echo "[SUCCESS] Configuration file downloaded successfully."
+
+    # Download .env file and handle backup if it already exists
+    echo "[INFO] Checking for an existing env file..."
+    if [ -f "$COLLECTOR_ENV_FILE" ]; then
+        echo "[INFO] env file found. Creating a backup..."
+        mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
+        echo "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE."
+    fi
+
+    echo "[INFO] Downloading the latest env file..."
+    curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
+    if [ $? -ne 0 ]; then
+        echo "[ERROR] Failed to download the env file. Exiting."
+        exit 1
+    fi
+    echo "[SUCCESS] env file downloaded successfully."
+
+    # Fetch hostID from backend
+    # echo "[INFO] Fetching hostID from the backend..."
+    # HOST_ID=$(curl -sf $BACKEND_ENDPOINT)
+    # if [ -z "$HOST_ID" ]; then
+    #     echo "[ERROR] Failed to fetch hostID. Exiting."
+    #     exit 1
+    # fi
+    HOST_ID="00000000000000000000000000"
+    echo "[INFO] HostID fetched: $HOST_ID"
+
+    # Run the new container
+    echo "[INFO] Starting a new container with the latest image..."
+    docker run -d --name incerto-collector --env-file ./.env -v $(pwd)/config.yaml:/config.yaml -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
+
+    echo "[SUCCESS] Container is up and running."
+
+}
+
 install_docker
-
-# Pull the latest image from public ECR
-echo "[INFO] Pulling the latest Docker image from Public ECR..."
-docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
-
-# Stop and remove the existing container if it exists
-if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
-    echo "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it..."
-    docker rm -f $CONTAINER_NAME
-    echo "[SUCCESS] Existing container removed."
-else
-    echo "[INFO] No existing container with the name $CONTAINER_NAME found."
-fi
-
-# Download config file and handle backup if it already exists
-echo "[INFO] Checking for an existing configuration file..."
-if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
-    echo "[INFO] Configuration file found. Creating a backup..."
-    mv "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_BACKUP_FILE"
-    echo "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE."
-fi
-
-echo "[INFO] Downloading the latest configuration file..."
-curl -fsSL -o "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
-if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to download the configuration file. Exiting."
-    exit 1
-fi
-echo "[SUCCESS] Configuration file downloaded successfully."
-
-# Download .env file and handle backup if it already exists
-echo "[INFO] Checking for an existing env file..."
-if [ -f "$COLLECTOR_ENV_FILE" ]; then
-    echo "[INFO] env file found. Creating a backup..."
-    mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
-    echo "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE."
-fi
-
-echo "[INFO] Downloading the latest env file..."
-curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
-if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to download the env file. Exiting."
-    exit 1
-fi
-echo "[SUCCESS] env file downloaded successfully."
-
-# Fetch hostID from backend
-# echo "[INFO] Fetching hostID from the backend..."
-# HOST_ID=$(curl -sf $BACKEND_ENDPOINT)
-# if [ -z "$HOST_ID" ]; then
-#     echo "[ERROR] Failed to fetch hostID. Exiting."
-#     exit 1
-# fi
-HOST_ID="00000000000000000000000000"
-echo "[INFO] HostID fetched: $HOST_ID"
-
-# Run the new container
-echo "[INFO] Starting a new container with the latest image..."
-docker run -d --name incerto-collector --env-file ./.env -v $(pwd)/config.yaml:/config.yaml -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
-
-echo "[SUCCESS] Container is up and running."
+run_collector
