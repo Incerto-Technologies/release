@@ -82,18 +82,12 @@ configure_docker_post_install() {
     echo "[SUCCESS] Docker group configured. "
 }
 
-# Function to verify Docker installation and functionality
-is_docker_installed() {
-    if command -v docker; then
-        echo "[INFO] Docker already installed. Version: $(docker --version)"
+# Check and install Docker
+install_docker() {
+    if command -v docker &> /dev/null; then
+        echo "Docker is already installed on this machine."
         return 0
     fi
-    echo "[INFO] Docker doesn't exists."
-    return 1
-}
-
-# Check and install Docker
-if is_docker_installed; then
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
@@ -104,13 +98,15 @@ if is_docker_installed; then
                 exit 1
                 ;;
         esac
+        # Perform post-installation steps
+        configure_docker_post_install
     else
         echo "[ERROR] OS detection failed. Unable to proceed."
         exit 1
     fi
-    # Perform post-installation steps
-    configure_docker_post_install
-fi
+}
+
+install_docker
 
 # Pull the latest image from public ECR
 echo "[INFO] Pulling the latest Docker image from Public ECR..."
