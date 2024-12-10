@@ -79,26 +79,48 @@ configure_docker_post_install() {
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
     newgrp docker
-    echo "[SUCCESS] Docker group configured."
+    echo "[SUCCESS] Docker group configured. "
 }
 
 # Function to verify Docker installation and functionality
+# is_docker_installed() {
+#     if ! command -v docker &> /dev/null; then
+#         echo "[INFO] Docker is not installed or not in PATH."
+#         return 1
+#     fi
+#     if ! docker --version &> /dev/null; then
+#         echo "[INFO] Docker command exists but is not functional."
+#         return 1
+#     fi
+#     echo "[INFO] Docker is installed and functional. Version: $(docker --version)"
+#     return 0
+# }
+
 is_docker_installed() {
+    echo "[DEBUG] Checking if Docker is in PATH..."
+    command -v docker &> /dev/null
+    echo "[DEBUG] command -v docker exit code: $?"
+
     if ! command -v docker &> /dev/null; then
         echo "[INFO] Docker is not installed or not in PATH."
         return 1
     fi
+
+    echo "[DEBUG] Checking if Docker version command is functional..."
+    docker --version &> /dev/null
+    echo "[DEBUG] docker --version exit code: $?"
+
     if ! docker --version &> /dev/null; then
         echo "[INFO] Docker command exists but is not functional."
         return 1
     fi
+
     echo "[INFO] Docker is installed and functional. Version: $(docker --version)"
     return 0
 }
 
 # Check and install Docker
 if ! is_docker_installed; then
-    echo "[INFO] Docker is not installed. Proceeding with installation..."
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
