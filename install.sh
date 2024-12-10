@@ -18,11 +18,20 @@ install_docker_ubuntu() {
     echo "[INFO] Installing Docker on Ubuntu..."
     sudo apt-get update -y
     sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-    if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
-        sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
-    fi
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
 
+    # Remove existing keyring file if it exists to avoid prompts
+    if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
+        echo "[INFO] Removing existing Docker GPG keyring file..."
+        sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
+        echo "[SUCCESS] Removed existing Docker GPG keyring file."
+    fi
+
+    # Download and save the GPG key
+    echo "[INFO] Downloading Docker GPG key..."
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "[SUCCESS] Docker GPG key downloaded and saved."
+
+    # Add Docker repository
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update -y
     sudo apt-get install -y docker-ce
@@ -104,18 +113,8 @@ if [ $? -ne 0 ]; then
 fi
 echo "[SUCCESS] Configuration file downloaded successfully."
 
-# Fetch hostID from backend
-# echo "[INFO] Fetching hostID from the backend..."
-# HOST_ID=$(curl -sf $BACKEND_URL)
-# if [ -z "$HOST_ID" ]; then
-#     echo "[ERROR] Failed to fetch hostID. Exiting."
-#     exit 1
-# fi
-HOST_ID="0000000000"
-echo "[INFO] HostID fetched: $HOST_ID"
-
-# Run the new container
+# Start the new container
 echo "[INFO] Starting a new container with the latest image..."
-docker run -d --name $CONTAINER_NAME -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG -v $(pwd)/config.yaml:/config.yaml
+docker run -d --name $CONTAINER_NAME -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
 echo "[SUCCESS] Container is up and running."
