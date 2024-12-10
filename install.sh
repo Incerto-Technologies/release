@@ -60,8 +60,7 @@ configure_docker_post_install() {
 }
 
 # Check and install Docker
-if ! command -v docker &> /dev/null
-then
+if ! docker --version &> /dev/null; then
     echo "[INFO] Docker not found. Starting installation process..."
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -81,7 +80,7 @@ then
     # Perform post-installation steps
     configure_docker_post_install
 else
-    echo "[INFO] Docker is already installed. Skipping installation."
+    echo "[INFO] Docker is already installed. Version: $(docker --version)"
 fi
 
 # Pull the latest image from public ECR
