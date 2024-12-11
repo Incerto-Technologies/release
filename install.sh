@@ -194,36 +194,36 @@ else
 fi
 
 # download `config.yaml` file and handle backup if it already exists
-echo -e "[INFO] Checking for an existing configuration file ..."
+echo -e "[INFO] Checking for an existing \`config.yaml\` file ..."
 if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
-    echo -e "[INFO] Configuration file found. Creating a backup ..."
+    echo -e "[INFO] \`config.yaml\` file found. Creating a backup ..."
     mv "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_BACKUP_FILE"
     echo -e "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE."
 fi
 
-echo -e "[INFO] Downloading the latest configuration file ..."
+echo -e "[INFO] Downloading the latest \`config.yaml\` file ..."
 curl -fsSL -o "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
 if [ $? -ne 0 ]; then
-    echo -e "[ERROR] Failed to download the configuration file. Exiting.\n\n"
+    echo -e "[ERROR] Failed to download the \`config.yaml\` file. Exiting.\n\n"
     exit 1
 fi
-echo -e "[SUCCESS] Configuration file downloaded successfully.\n\n"
+echo -e "[SUCCESS] \`config.yaml\` file downloaded successfully.\n\n"
 
 # download `.env`` file and handle backup if it already exists
-echo -e "[INFO] Checking for an existing env file ..."
+echo -e "[INFO] Checking for an existing \`.env\` file ..."
 if [ -f "$COLLECTOR_ENV_FILE" ]; then
-    echo -e "[INFO] env file found. Creating a backup ..."
+    echo -e "[INFO] \`.env\` file found. Creating a backup ..."
     mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
     echo -e "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE."
 fi
 
-echo -e "[INFO] Downloading the latest env file ..."
+echo -e "[INFO] Downloading the latest \`.env\` file ..."
 curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
 if [ $? -ne 0 ]; then
-    echo -e "[ERROR] Failed to download the env file. Exiting.\n\n"
+    echo -e "[ERROR] Failed to download the \`.env\` file. Exiting.\n\n"
     exit 1
 fi
-echo -e "[SUCCESS] env file downloaded successfully.\n\n"
+echo -e "[SUCCESS] \`.env\` file downloaded successfully.\n\n"
 
 # check private and public IPs
 if [ -z "$PRIVATE_IP" ] || [ -z "$PUBLIC_IP" ]; then
