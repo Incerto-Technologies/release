@@ -136,8 +136,8 @@ install_jq() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
-            ubuntu) sudo apt-get install jq ;;
-            rhel | centos | amzn) sudo yum install jq  ;;
+            ubuntu) sudo apt-get install -y jq ;;
+            rhel | centos | amzn) sudo yum install -y jq  ;;
             *)
                 echo -e "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported."
                 exit 1
