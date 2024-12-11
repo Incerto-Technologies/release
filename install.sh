@@ -276,6 +276,8 @@ update_env_file "HOST_ID" "$HOST_ID"
 echo -e "[INFO] Starting a new container with the latest image..."
 docker run -d --name incerto-collector --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
+echo -e "                      Container is up and running.                      "
+
 echo -e "\n************************************************************************"
 echo -e "                                                                        "
 echo -e "d888888b   d8b   db    .o88b.   d88888b   d8888b.   d888888b    .d88b.  "
@@ -285,6 +287,7 @@ echo -e "   88      88 V8o88   8b        88~~~~~   88 8b        88      88    88
 echo -e "  .88.     88  V888   Y8b  d8   88.       88  88.      88       8b  d8  "
 echo -e "Y888888P   VP   V8P     Y88P    Y88888P   88   YD      YP        Y88P   "
 echo -e "                                                                        "
-echo -e "                      Container is up and running.                      "
+echo -e "                      Incerto Technologies Pvt Ltd                      "
+echo -e "                           https://incerto.in                           "
 echo -e "                                                                        "
 echo -e "************************************************************************"
