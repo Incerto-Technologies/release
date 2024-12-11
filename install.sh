@@ -1,14 +1,16 @@
 #!/bin/bash
 
-set -e  # Exit immediately if a command exits with a non-zero status
+set -e  # exit immediately if a command exits with a non-zero status
 
+# fetch private and public IPs
+PRIVATE_IP=$(hostname -I | awk '{print $1}')
+PUBLIC_IP=$(curl -sf http://checkip.amazonaws.com)
+
+# registry details
 ECR_URL="public.ecr.aws/t9w7u8l8/incerto"
 IMAGE_NAME="collector"
 IMAGE_TAG="latest"
 CONTAINER_NAME="incerto-collector"
-
-# To get `HOST_ID` for a unique host
-BACKEND_ENDPOINT="http://localhost:8080"
 
 # `config.yaml`
 COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/config.yaml"  
@@ -20,7 +22,26 @@ COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/collec
 COLLECTOR_ENV_FILE=".env"
 COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 
-# Function to install Docker on Ubuntu
+# to get `HOST_ID` for a unique host
+BACKEND_URL="http://localhost:8080"
+
+# parse command-line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --backend-url)
+            BACKEND_URL="$2"
+            shift 2
+            ;;
+        *)
+            echo "[ERROR] Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+echo "[INFO] Using BACKEND_URL: $BACKEND_URL\n"
+
+# function to install Docker on Ubuntu
 install_docker_ubuntu() {
     echo "[INFO] Installing Docker on Ubuntu..."
     sudo apt-get update -y
@@ -37,7 +58,7 @@ install_docker_ubuntu() {
     echo "[SUCCESS] Docker installed successfully on UBUNTU."
 }
 
-# Function to install Docker on RHEL
+# function to install Docker on RHEL
 install_docker_rhel() {
     echo "[INFO] Installing Docker on RHEL..."
     # Check for Amazon Linux version
@@ -73,7 +94,7 @@ install_docker_rhel() {
     fi
 }
 
-# After installation: Set up Docker group and permissions
+# after installation: set up Docker group and permissions
 configure_docker_post_install() {
     echo "[INFO] Configuring Docker group and permissions..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
@@ -81,7 +102,7 @@ configure_docker_post_install() {
     echo "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -"
 }
 
-# Check and install Docker
+# check and install Docker
 install_docker() {
     if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
         echo "Docker is already installed on this machine."
@@ -106,14 +127,64 @@ install_docker() {
     fi
 }
 
+# check and install jq
+install_jq() {
+    if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
+        echo "jq is already installed on this machine."
+        return 0
+    fi
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        case "$ID" in
+            ubuntu) sudo apt-get install jq ;;
+            rhel | centos | amzn) sudo yum install jq  ;;
+            *)
+                echo "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported."
+                exit 1
+                ;;
+        esac
+    else
+        echo "[ERROR] OS detection failed. Unable to proceed."
+        exit 1
+    fi
+}
+
+update_env_file() {
+    KEY="$1"   # The key to update or add (e.g., "HOST_ID")
+    VALUE="$2" # The value to set for the key
+
+    echo "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE..."
+
+    # Check if the .env file exists
+    if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
+        echo "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one."
+        echo "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
+        echo "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE."
+    else
+        # Check if the key already exists
+        if grep -q "^$KEY=" "$COLLECTOR_ENV_FILE"; then
+            echo "[INFO] $KEY already exists in $COLLECTOR_ENV_FILE. Updating it."
+            sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$COLLECTOR_ENV_FILE"  # Update the existing value
+            echo "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE."
+        else
+            echo "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it."
+            echo "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair
+            echo "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE."
+        fi
+    fi
+}
+
 install_docker
+
 sleep 1
 
-# Pull the latest image from public ECR
+install_jq
+
+# pull the latest image from public ECR
 echo "[INFO] Pulling the latest Docker image from Public ECR..."
 docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
-# Stop and remove the existing container if it exists
+# stop and remove the existing container if it exists
 if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
     echo "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it..."
     docker rm -f $CONTAINER_NAME
@@ -122,7 +193,7 @@ else
     echo "[INFO] No existing container with the name $CONTAINER_NAME found.\n"
 fi
 
-# Download config file and handle backup if it already exists
+# download `config.yaml` file and handle backup if it already exists
 echo "[INFO] Checking for an existing configuration file..."
 if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
     echo "[INFO] Configuration file found. Creating a backup..."
@@ -138,7 +209,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "[SUCCESS] Configuration file downloaded successfully.\n"
 
-# Download .env file and handle backup if it already exists
+# download `.env`` file and handle backup if it already exists
 echo "[INFO] Checking for an existing env file..."
 if [ -f "$COLLECTOR_ENV_FILE" ]; then
     echo "[INFO] env file found. Creating a backup..."
@@ -154,19 +225,46 @@ if [ $? -ne 0 ]; then
 fi
 echo "[SUCCESS] env file downloaded successfully.\n"
 
-# Fetch hostID from backend
-# echo "[INFO] Fetching hostID from the backend..."
-# HOST_ID=$(curl -sf $BACKEND_ENDPOINT)
-# if [ -z "$HOST_ID" ]; then
-#     echo "[ERROR] Failed to fetch hostID. Exiting."
+# check private and public IPs
+if [ -z "$PRIVATE_IP" ] || [ -z "$PUBLIC_IP" ]; then
+    echo "[ERROR] Failed to retrieve private or public IPs. Exiting.\n"
+    exit 1
+fi
+echo "[INFO] Private IP: $PRIVATE_IP"
+echo "[INFO] Public IP: $PUBLIC_IP"
+
+# Fetch hostID from backend using POST
+echo "[INFO] Fetching hostID from the backend..."
+# HOST_ID_RESPONSE=$(curl -sf -X POST \
+#   "$BACKEND_URL/api/v1/open-host-detail" \
+#   -H "accept: application/json" \
+#   -H "Content-Type: application/json" \
+#   -d "{
+#         \"privateIP\": \"$PRIVATE_IP\",
+#         \"publicIP\": \"$PUBLIC_IP\"
+#       }")
+
+# if [ $? -ne 0 ]; then
+#     echo "[ERROR] Failed to fetch hostID from the backend. Exiting."
 #     exit 1
 # fi
-HOST_ID="00000000000000000000000000"
-echo "[INFO] HostID fetched: $HOST_ID\n"
+
+HOST_ID_RESPONSE='{
+  "hostId": "00000000000000000000000000"
+}'
+
+HOST_ID=$(echo "$HOST_ID_RESPONSE" | jq -r '.hostId')
+if [ -z "$HOST_ID" ]; then
+    echo "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
+    exit 1
+fi
+echo "[INFO] hostID fetched: $HOST_ID\n"
+
+update_env_file "HOST_ID" "$HOST_ID"
 
 # Run the new container
 echo "[INFO] Starting a new container with the latest image..."
-docker run -d --name incerto-collector --env-file ./.env -v $(pwd)/config.yaml:/config.yaml -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
+docker run -d --name incerto-collector --env-file $(pwd)/.env -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
 
 echo "*****************************************************************"
 echo "d888888b  d8b   db   .o88b.  d88888b  d8888b.  d888888b   .d88b. "
