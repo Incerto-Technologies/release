@@ -78,7 +78,7 @@ configure_docker_post_install() {
     echo "[INFO] Configuring Docker group and permissions..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    echo "[SUCCESS] Docker group configured. Please logout and log back in."
+    echo "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -"
 }
 
 # Check and install Docker
