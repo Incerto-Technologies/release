@@ -235,23 +235,19 @@ echo -e "[INFO] Public IP: $PUBLIC_IP"
 
 # Fetch hostID from backend using POST
 echo -e "[INFO] Fetching hostID from the backend ..."
-# HOST_ID_RESPONSE=$(curl -sf -X POST \
-#   "$BACKEND_URL/api/v1/open-host-detail" \
-#   -H "accept: application/json" \
-#   -H "Content-Type: application/json" \
-#   -d "{
-#         \"privateIP\": \"$PRIVATE_IP\",
-#         \"publicIP\": \"$PUBLIC_IP\"
-#       }")
+HOST_ID_RESPONSE=$(curl -sf -X POST \
+  "$BACKEND_URL/api/v1/open-host-detail" \
+  -H "accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d "{
+        \"privateIP\": \"$PRIVATE_IP\",
+        \"publicIP\": \"$PUBLIC_IP\"
+      }")
 
-# if [ $? -ne 0 ]; then
-#     echo -e "[ERROR] Failed to fetch hostID from the backend. Exiting."
-#     exit 1
-# fi
-
-HOST_ID_RESPONSE='{
-  "hostId": "00000000000000000000000000"
-}'
+if [ $? -ne 0 ]; then
+    echo -e "[ERROR] Failed to fetch hostID from the backend. Exiting."
+    exit 1
+fi
 
 HOST_ID=$(echo "$HOST_ID_RESPONSE" | jq -r '.hostId')
 if [ -z "$HOST_ID" ]; then
@@ -263,7 +259,7 @@ update_env_file "HOST_ID" "$HOST_ID"
 
 # Run the new container
 echo -e "[INFO] Starting a new container with the latest image..."
-docker run -d --name incerto-collector --env-file $(pwd)/.env -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
+docker run -d --name incerto-collector --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
 echo -e "\n*****************************************************************"
 echo -e "                                                                 "
