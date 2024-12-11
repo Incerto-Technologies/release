@@ -33,62 +33,62 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         *)
-            echo "[ERROR] Unknown option: $1"
+            echo -e "[ERROR] Unknown option: $1"
             exit 1
             ;;
     esac
 done
 
-echo "[INFO] Using BACKEND_URL: $BACKEND_URL\n"
+echo -e "[INFO] Using BACKEND_URL: $BACKEND_URL\n"
 
 # function to install Docker on Ubuntu
 install_docker_ubuntu() {
-    echo "[INFO] Installing Docker on Ubuntu..."
+    echo -e "[INFO] Installing Docker on Ubuntu..."
     sudo apt-get update -y
     sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
     if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
         sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
     fi
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    echo -e "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update -y
     sudo apt-get install -y docker-ce
     sudo systemctl enable docker
     sudo systemctl start docker
-    echo "[SUCCESS] Docker installed successfully on UBUNTU."
+    echo -e "[SUCCESS] Docker installed successfully on UBUNTU."
 }
 
 # function to install Docker on RHEL
 install_docker_rhel() {
-    echo "[INFO] Installing Docker on RHEL..."
+    echo -e "[INFO] Installing Docker on RHEL..."
     # Check for Amazon Linux version
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         if [[ "$ID" == "amzn" && "$VERSION_ID" == "2" ]]; then
-            echo "[INFO] Detected Amazon Linux 2. Installing Docker for Amazon Linux 2..."
+            echo -e "[INFO] Detected Amazon Linux 2. Installing Docker for Amazon Linux 2..."
             sudo yum update -y
             sudo amazon-linux-extras enable docker
             sudo yum install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
-            echo "[SUCCESS] Docker installed on Amazon Linux 2."
+            echo -e "[SUCCESS] Docker installed on Amazon Linux 2."
             return
         elif [[ "$ID" == "amzn" && "$VERSION_ID" == "2023" ]]; then
-            echo "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023..."
+            echo -e "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023..."
             sudo yum update -y
             sudo dnf install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
-            echo "[SUCCESS] Docker installed on Amazon Linux 2023."
+            echo -e "[SUCCESS] Docker installed on Amazon Linux 2023."
             return
         else
-            echo "[INFO] Detected RHEL. Installing Docker for RHEL..."
+            echo -e "[INFO] Detected RHEL. Installing Docker for RHEL..."
             sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc
             sudo dnf -y install dnf-plugins-core
             sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
             sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
             sudo systemctl enable --now docker
-            echo "[SUCCESS] Docker installed on RHEL."
+            echo -e "[SUCCESS] Docker installed on RHEL."
             return
         fi
     fi
@@ -96,16 +96,16 @@ install_docker_rhel() {
 
 # after installation: set up Docker group and permissions
 configure_docker_post_install() {
-    echo "[INFO] Configuring Docker group and permissions..."
+    echo -e "[INFO] Configuring Docker group and permissions..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    echo "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -"
+    echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -"
 }
 
 # check and install Docker
 install_docker() {
     if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
-        echo "Docker is already installed on this machine."
+        echo -e "Docker is already installed on this machine."
         return 0
     fi
     if [ -f /etc/os-release ]; then
@@ -114,7 +114,7 @@ install_docker() {
             ubuntu) install_docker_ubuntu ;;
             rhel | centos | amzn) install_docker_rhel ;;
             *)
-                echo "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported."
+                echo -e "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported."
                 exit 1
                 ;;
         esac
@@ -122,7 +122,7 @@ install_docker() {
         configure_docker_post_install
         exit 1
     else
-        echo "[ERROR] OS detection failed. Unable to proceed."
+        echo -e "[ERROR] OS detection failed. Unable to proceed."
         exit 1
     fi
 }
@@ -130,7 +130,7 @@ install_docker() {
 # check and install jq
 install_jq() {
     if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
-        echo "jq is already installed on this machine."
+        echo -e "jq is already installed on this machine."
         return 0
     fi
     if [ -f /etc/os-release ]; then
@@ -139,12 +139,12 @@ install_jq() {
             ubuntu) sudo apt-get install jq ;;
             rhel | centos | amzn) sudo yum install jq  ;;
             *)
-                echo "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported."
+                echo -e "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported."
                 exit 1
                 ;;
         esac
     else
-        echo "[ERROR] OS detection failed. Unable to proceed."
+        echo -e "[ERROR] OS detection failed. Unable to proceed."
         exit 1
     fi
 }
@@ -153,23 +153,23 @@ update_env_file() {
     KEY="$1"   # The key to update or add (e.g., "HOST_ID")
     VALUE="$2" # The value to set for the key
 
-    echo "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE..."
+    echo -e "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE..."
 
     # Check if the .env file exists
     if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
-        echo "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one."
-        echo "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
-        echo "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE."
+        echo -e "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one."
+        echo -e "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
+        echo -e "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE."
     else
         # Check if the key already exists
         if grep -q "^$KEY=" "$COLLECTOR_ENV_FILE"; then
-            echo "[INFO] $KEY already exists in $COLLECTOR_ENV_FILE. Updating it."
+            echo -e "[INFO] $KEY already exists in $COLLECTOR_ENV_FILE. Updating it."
             sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$COLLECTOR_ENV_FILE"  # Update the existing value
-            echo "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE."
+            echo -e "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE."
         else
-            echo "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it."
-            echo "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair
-            echo "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE."
+            echo -e "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it."
+            echo -e "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair
+            echo -e "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE."
         fi
     fi
 }
@@ -181,60 +181,60 @@ sleep 1
 install_jq
 
 # pull the latest image from public ECR
-echo "[INFO] Pulling the latest Docker image from Public ECR..."
+echo -e "[INFO] Pulling the latest Docker image from Public ECR..."
 docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
 # stop and remove the existing container if it exists
 if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
-    echo "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it..."
+    echo -e "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it..."
     docker rm -f $CONTAINER_NAME
-    echo "[SUCCESS] Existing container removed.\n"
+    echo -e "[SUCCESS] Existing container removed.\n"
 else
-    echo "[INFO] No existing container with the name $CONTAINER_NAME found.\n"
+    echo -e "[INFO] No existing container with the name $CONTAINER_NAME found.\n"
 fi
 
 # download `config.yaml` file and handle backup if it already exists
-echo "[INFO] Checking for an existing configuration file..."
+echo -e "[INFO] Checking for an existing configuration file..."
 if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
-    echo "[INFO] Configuration file found. Creating a backup..."
+    echo -e "[INFO] Configuration file found. Creating a backup..."
     mv "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_BACKUP_FILE"
-    echo "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE.\n"
+    echo -e "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE.\n"
 fi
 
-echo "[INFO] Downloading the latest configuration file..."
+echo -e "[INFO] Downloading the latest configuration file..."
 curl -fsSL -o "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
 if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to download the configuration file. Exiting.\n"
+    echo -e "[ERROR] Failed to download the configuration file. Exiting.\n"
     exit 1
 fi
-echo "[SUCCESS] Configuration file downloaded successfully.\n"
+echo -e "[SUCCESS] Configuration file downloaded successfully.\n"
 
 # download `.env`` file and handle backup if it already exists
-echo "[INFO] Checking for an existing env file..."
+echo -e "[INFO] Checking for an existing env file..."
 if [ -f "$COLLECTOR_ENV_FILE" ]; then
-    echo "[INFO] env file found. Creating a backup..."
+    echo -e "[INFO] env file found. Creating a backup..."
     mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
-    echo "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE."
+    echo -e "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE."
 fi
 
-echo "[INFO] Downloading the latest env file..."
+echo -e "[INFO] Downloading the latest env file..."
 curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
 if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to download the env file. Exiting.\n"
+    echo -e "[ERROR] Failed to download the env file. Exiting.\n"
     exit 1
 fi
-echo "[SUCCESS] env file downloaded successfully.\n"
+echo -e "[SUCCESS] env file downloaded successfully.\n"
 
 # check private and public IPs
 if [ -z "$PRIVATE_IP" ] || [ -z "$PUBLIC_IP" ]; then
-    echo "[ERROR] Failed to retrieve private or public IPs. Exiting.\n"
+    echo -e "[ERROR] Failed to retrieve private or public IPs. Exiting.\n"
     exit 1
 fi
-echo "[INFO] Private IP: $PRIVATE_IP"
-echo "[INFO] Public IP: $PUBLIC_IP"
+echo -e "[INFO] Private IP: $PRIVATE_IP"
+echo -e "[INFO] Public IP: $PUBLIC_IP"
 
 # Fetch hostID from backend using POST
-echo "[INFO] Fetching hostID from the backend..."
+echo -e "[INFO] Fetching hostID from the backend..."
 # HOST_ID_RESPONSE=$(curl -sf -X POST \
 #   "$BACKEND_URL/api/v1/open-host-detail" \
 #   -H "accept: application/json" \
@@ -245,7 +245,7 @@ echo "[INFO] Fetching hostID from the backend..."
 #       }")
 
 # if [ $? -ne 0 ]; then
-#     echo "[ERROR] Failed to fetch hostID from the backend. Exiting."
+#     echo -e "[ERROR] Failed to fetch hostID from the backend. Exiting."
 #     exit 1
 # fi
 
@@ -255,25 +255,25 @@ HOST_ID_RESPONSE='{
 
 HOST_ID=$(echo "$HOST_ID_RESPONSE" | jq -r '.hostId')
 if [ -z "$HOST_ID" ]; then
-    echo "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
+    echo -e "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
     exit 1
 fi
-echo "[INFO] hostID fetched: $HOST_ID\n"
+echo -e "[INFO] hostID fetched: $HOST_ID\n"
 
 update_env_file "HOST_ID" "$HOST_ID"
 
 # Run the new container
-echo "[INFO] Starting a new container with the latest image..."
+echo -e "[INFO] Starting a new container with the latest image..."
 docker run -d --name incerto-collector --env-file $(pwd)/.env -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
 
-echo "*****************************************************************"
-echo "d888888b  d8b   db   .o88b.  d88888b  d8888b.  d888888b   .d88b. "
-echo "  `88'    888o  88  d8P  Y8  88'      88  `8D  `~~88~~'  .8P  Y8."
-echo "   88     88V8o 88  8P       88ooooo  88oobY'     88     88    88"
-echo "   88     88 V8o88  8b       88~~~~~  88`8b       88     88    88"
-echo "  .88.    88  V888  Y8b  d8  88.      88 `88.     88     `8b  d8'"
-echo "Y888888P  VP   V8P   `Y88P'  Y88888P  88   YD     YP      `Y88P' "
-echo "                                                                 "
-echo "                  Container is up and running.                   "
-echo "                                                                 "
-echo "*****************************************************************"
+echo -e "*****************************************************************"
+echo -e "d888888b  d8b   db   .o88b.  d88888b  d8888b.  d888888b   .d88b. "
+echo -e "  `88'    888o  88  d8P  Y8  88'      88  `8D  `~~88~~'  .8P  Y8."
+echo -e "   88     88V8o 88  8P       88ooooo  88oobY'     88     88    88"
+echo -e "   88     88 V8o88  8b       88~~~~~  88`8b       88     88    88"
+echo -e "  .88.    88  V888  Y8b  d8  88.      88 `88.     88     `8b  d8'"
+echo -e "Y888888P  VP   V8P   `Y88P'  Y88888P  88   YD     YP      `Y88P' "
+echo -e "                                                                 "
+echo -e "                  Container is up and running.                   "
+echo -e "                                                                 "
+echo -e "*****************************************************************"
