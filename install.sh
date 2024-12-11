@@ -84,7 +84,7 @@ configure_docker_post_install() {
 
 # Check and install Docker
 install_docker() {
-    if command -v docker &> /dev/null; then
+    if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
         echo "Docker is already installed on this machine."
         return 0
     fi
