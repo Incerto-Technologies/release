@@ -261,7 +261,7 @@ update_env_file "HOST_ID" "$HOST_ID"
 echo -e "[INFO] Starting a new container with the latest image..."
 docker run -d --name incerto-collector --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
-echo -e "\n*********************************************************************"
+echo -e "\n***********************************************************************"
 echo -e "                                                                       "
 echo -e "d888888b   d8b   db    .o88b.   d88888b   d8888b.   d888888b    .d88b. "
 echo -e "   88      888o  88   d8P  Y8   88        88   8D    ~~88~~    .8P  Y8."
