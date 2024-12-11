@@ -99,7 +99,7 @@ configure_docker_post_install() {
     echo -e "[INFO] Configuring Docker group and permissions ..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -s -- --backend-url "http://\<your-backend-url\>.com""
+    echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -s -- --backend-url $BACKEND_URL"
 }
 
 # check and install Docker
@@ -120,7 +120,7 @@ install_docker() {
         esac
         # Perform post-installation steps
         configure_docker_post_install
-        exit 1
+        exit 0
     else
         echo -e "[ERROR] OS detection failed. Unable to proceed."
         exit 1
@@ -174,9 +174,24 @@ update_env_file() {
     fi
 }
 
+check_docker_permissions() {
+    echo -e "[INFO] Checking Docker permissions for the current user ..."
+    if groups $USER | grep -q '\bdocker\b'; then
+        echo -e "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
+    else
+        echo -e "[INFO] User \`$USER\` does not have access to Docker without sudo."
+        echo -e "[INFO] Adding user \`$USER\` to the \`docker\` group..."
+        sudo usermod -aG docker $USER
+        echo -e "[INFO] User \`$USER\` added to the \`docker\` group."
+        echo -e "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -s -- --backend-url $BACKEND_URL"
+        exit 0
+    fi
+}
+
+
 install_docker
 
-sleep 1
+check_docker_permissions
 
 install_jq
 
