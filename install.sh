@@ -117,9 +117,9 @@ docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
     echo "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it..."
     docker rm -f $CONTAINER_NAME
-    echo "[SUCCESS] Existing container removed."
+    echo "[SUCCESS] Existing container removed.\n"
 else
-    echo "[INFO] No existing container with the name $CONTAINER_NAME found."
+    echo "[INFO] No existing container with the name $CONTAINER_NAME found.\n"
 fi
 
 # Download config file and handle backup if it already exists
@@ -127,16 +127,16 @@ echo "[INFO] Checking for an existing configuration file..."
 if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
     echo "[INFO] Configuration file found. Creating a backup..."
     mv "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_BACKUP_FILE"
-    echo "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE."
+    echo "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE.\n"
 fi
 
 echo "[INFO] Downloading the latest configuration file..."
 curl -fsSL -o "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
 if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to download the configuration file. Exiting."
+    echo "[ERROR] Failed to download the configuration file. Exiting.\n"
     exit 1
 fi
-echo "[SUCCESS] Configuration file downloaded successfully."
+echo "[SUCCESS] Configuration file downloaded successfully.\n"
 
 # Download .env file and handle backup if it already exists
 echo "[INFO] Checking for an existing env file..."
@@ -149,10 +149,10 @@ fi
 echo "[INFO] Downloading the latest env file..."
 curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
 if [ $? -ne 0 ]; then
-    echo "[ERROR] Failed to download the env file. Exiting."
+    echo "[ERROR] Failed to download the env file. Exiting.\n"
     exit 1
 fi
-echo "[SUCCESS] env file downloaded successfully."
+echo "[SUCCESS] env file downloaded successfully.\n"
 
 # Fetch hostID from backend
 # echo "[INFO] Fetching hostID from the backend..."
@@ -162,10 +162,20 @@ echo "[SUCCESS] env file downloaded successfully."
 #     exit 1
 # fi
 HOST_ID="00000000000000000000000000"
-echo "[INFO] HostID fetched: $HOST_ID"
+echo "[INFO] HostID fetched: $HOST_ID\n"
 
 # Run the new container
 echo "[INFO] Starting a new container with the latest image..."
 docker run -d --name incerto-collector --env-file ./.env -v $(pwd)/config.yaml:/config.yaml -e HOST_ID="$HOST_ID" $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
 
-echo "[SUCCESS] Container is up and running."
+echo "*****************************************************************"
+echo "d888888b  d8b   db   .o88b.  d88888b  d8888b.  d888888b   .d88b. "
+echo "  `88'    888o  88  d8P  Y8  88'      88  `8D  `~~88~~'  .8P  Y8."
+echo "   88     88V8o 88  8P       88ooooo  88oobY'     88     88    88"
+echo "   88     88 V8o88  8b       88~~~~~  88`8b       88     88    88"
+echo "  .88.    88  V888  Y8b  d8  88.      88 `88.     88     `8b  d8'"
+echo "Y888888P  VP   V8P   `Y88P'  Y88888P  88   YD     YP      `Y88P' "
+echo "                                                                 "
+echo "                  Container is up and running.                   "
+echo "                                                                 "
+echo "*****************************************************************"
