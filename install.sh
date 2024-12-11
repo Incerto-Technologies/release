@@ -13,7 +13,7 @@ IMAGE_TAG="latest"
 CONTAINER_NAME="incerto-collector"
 
 # `config.yaml`
-COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/config.yaml"  
+COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/config.yaml"
 COLLECTOR_CONFIG_FILE="config.yaml"
 COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
 
@@ -43,7 +43,7 @@ echo -e "[INFO] Using BACKEND_URL: $BACKEND_URL\n"
 
 # function to install Docker on Ubuntu
 install_docker_ubuntu() {
-    echo -e "[INFO] Installing Docker on Ubuntu..."
+    echo -e "[INFO] Installing Docker on Ubuntu ..."
     sudo apt-get update -y
     sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
     if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
@@ -60,12 +60,12 @@ install_docker_ubuntu() {
 
 # function to install Docker on RHEL
 install_docker_rhel() {
-    echo -e "[INFO] Installing Docker on RHEL..."
+    echo -e "[INFO] Installing Docker on RHEL ..."
     # Check for Amazon Linux version
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         if [[ "$ID" == "amzn" && "$VERSION_ID" == "2" ]]; then
-            echo -e "[INFO] Detected Amazon Linux 2. Installing Docker for Amazon Linux 2..."
+            echo -e "[INFO] Detected Amazon Linux 2. Installing Docker for Amazon Linux 2 ..."
             sudo yum update -y
             sudo amazon-linux-extras enable docker
             sudo yum install -y docker
@@ -74,7 +74,7 @@ install_docker_rhel() {
             echo -e "[SUCCESS] Docker installed on Amazon Linux 2."
             return
         elif [[ "$ID" == "amzn" && "$VERSION_ID" == "2023" ]]; then
-            echo -e "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023..."
+            echo -e "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023 ..."
             sudo yum update -y
             sudo dnf install -y docker
             sudo systemctl start docker
@@ -82,7 +82,7 @@ install_docker_rhel() {
             echo -e "[SUCCESS] Docker installed on Amazon Linux 2023."
             return
         else
-            echo -e "[INFO] Detected RHEL. Installing Docker for RHEL..."
+            echo -e "[INFO] Detected RHEL. Installing Docker for RHEL ..."
             sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc
             sudo dnf -y install dnf-plugins-core
             sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
@@ -96,7 +96,7 @@ install_docker_rhel() {
 
 # after installation: set up Docker group and permissions
 configure_docker_post_install() {
-    echo -e "[INFO] Configuring Docker group and permissions..."
+    echo -e "[INFO] Configuring Docker group and permissions ..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
     echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -"
@@ -105,7 +105,7 @@ configure_docker_post_install() {
 # check and install Docker
 install_docker() {
     if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
-        echo -e "Docker is already installed on this machine."
+        echo -e "[INFO] Docker is already installed on this machine.\n\n"
         return 0
     fi
     if [ -f /etc/os-release ]; then
@@ -130,7 +130,7 @@ install_docker() {
 # check and install jq
 install_jq() {
     if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
-        echo -e "jq is already installed on this machine."
+        echo -e "[INFO] jq is already installed on this machine.\n\n"
         return 0
     fi
     if [ -f /etc/os-release ]; then
@@ -153,7 +153,7 @@ update_env_file() {
     KEY="$1"   # The key to update or add (e.g., "HOST_ID")
     VALUE="$2" # The value to set for the key
 
-    echo -e "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE..."
+    echo -e "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE"
 
     # Check if the .env file exists
     if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
@@ -181,49 +181,49 @@ sleep 1
 install_jq
 
 # pull the latest image from public ECR
-echo -e "[INFO] Pulling the latest Docker image from Public ECR..."
+echo -e "[INFO] Pulling the latest Docker image from Public ECR ..."
 docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
 # stop and remove the existing container if it exists
 if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
-    echo -e "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it..."
+    echo -e "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it ..."
     docker rm -f $CONTAINER_NAME
-    echo -e "[SUCCESS] Existing container removed.\n"
+    echo -e "[SUCCESS] Existing container removed.\n\n"
 else
-    echo -e "[INFO] No existing container with the name $CONTAINER_NAME found.\n"
+    echo -e "[INFO] No existing container with the name $CONTAINER_NAME found.\n\n"
 fi
 
 # download `config.yaml` file and handle backup if it already exists
-echo -e "[INFO] Checking for an existing configuration file..."
+echo -e "[INFO] Checking for an existing configuration file ..."
 if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
-    echo -e "[INFO] Configuration file found. Creating a backup..."
+    echo -e "[INFO] Configuration file found. Creating a backup ..."
     mv "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_BACKUP_FILE"
-    echo -e "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE.\n"
+    echo -e "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE."
 fi
 
-echo -e "[INFO] Downloading the latest configuration file..."
+echo -e "[INFO] Downloading the latest configuration file ..."
 curl -fsSL -o "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
 if [ $? -ne 0 ]; then
-    echo -e "[ERROR] Failed to download the configuration file. Exiting.\n"
+    echo -e "[ERROR] Failed to download the configuration file. Exiting.\n\n"
     exit 1
 fi
-echo -e "[SUCCESS] Configuration file downloaded successfully.\n"
+echo -e "[SUCCESS] Configuration file downloaded successfully.\n\n"
 
 # download `.env`` file and handle backup if it already exists
-echo -e "[INFO] Checking for an existing env file..."
+echo -e "[INFO] Checking for an existing env file ..."
 if [ -f "$COLLECTOR_ENV_FILE" ]; then
-    echo -e "[INFO] env file found. Creating a backup..."
+    echo -e "[INFO] env file found. Creating a backup ..."
     mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
     echo -e "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE."
 fi
 
-echo -e "[INFO] Downloading the latest env file..."
+echo -e "[INFO] Downloading the latest env file ..."
 curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
 if [ $? -ne 0 ]; then
-    echo -e "[ERROR] Failed to download the env file. Exiting.\n"
+    echo -e "[ERROR] Failed to download the env file. Exiting.\n\n"
     exit 1
 fi
-echo -e "[SUCCESS] env file downloaded successfully.\n"
+echo -e "[SUCCESS] env file downloaded successfully.\n\n"
 
 # check private and public IPs
 if [ -z "$PRIVATE_IP" ] || [ -z "$PUBLIC_IP" ]; then
@@ -234,7 +234,7 @@ echo -e "[INFO] Private IP: $PRIVATE_IP"
 echo -e "[INFO] Public IP: $PUBLIC_IP"
 
 # Fetch hostID from backend using POST
-echo -e "[INFO] Fetching hostID from the backend..."
+echo -e "[INFO] Fetching hostID from the backend ..."
 # HOST_ID_RESPONSE=$(curl -sf -X POST \
 #   "$BACKEND_URL/api/v1/open-host-detail" \
 #   -H "accept: application/json" \
@@ -258,15 +258,17 @@ if [ -z "$HOST_ID" ]; then
     echo -e "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
     exit 1
 fi
-echo -e "[INFO] hostID fetched: $HOST_ID\n"
-
+echo -e "[INFO] hostID fetched: $HOST_ID"
 update_env_file "HOST_ID" "$HOST_ID"
 
 # Run the new container
-echo -e "[INFO] Starting a new container with the latest image..."
+echo -e "[INFO] Starting a new container with the latest image...\n"
 docker run -d --name incerto-collector --env-file $(pwd)/.env -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
 
+echo -e "\n"
+
 echo -e "*****************************************************************"
+echo -e "                                                                 "
 echo -e "d888888b  d8b   db   .o88b.  d88888b  d8888b.  d888888b   .d88b. "
 echo -e "   88     888o  88  d8P  Y8  88       88   8D   ~~88~~   .8P  Y8."
 echo -e "   88     88V8o 88  8P       88ooooo  88oobY      88     88    88"
