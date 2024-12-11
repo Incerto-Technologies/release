@@ -39,7 +39,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo -e "[INFO] Using BACKEND_URL: $BACKEND_URL\n"
+echo -e "\n[INFO] Using BACKEND_URL: $BACKEND_URL\n\n"
 
 # function to install Docker on Ubuntu
 install_docker_ubuntu() {
@@ -159,17 +159,17 @@ update_env_file() {
     if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
         echo -e "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one."
         echo -e "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
-        echo -e "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE."
+        echo -e "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
     else
         # Check if the key already exists
         if grep -q "^$KEY=" "$COLLECTOR_ENV_FILE"; then
             echo -e "[INFO] $KEY already exists in $COLLECTOR_ENV_FILE. Updating it."
             sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$COLLECTOR_ENV_FILE"  # Update the existing value
-            echo -e "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE."
+            echo -e "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE.\n\n"
         else
             echo -e "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it."
             echo -e "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair
-            echo -e "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE."
+            echo -e "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
         fi
     fi
 }
@@ -262,12 +262,10 @@ echo -e "[INFO] hostID fetched: $HOST_ID"
 update_env_file "HOST_ID" "$HOST_ID"
 
 # Run the new container
-echo -e "[INFO] Starting a new container with the latest image...\n"
+echo -e "[INFO] Starting a new container with the latest image..."
 docker run -d --name incerto-collector --env-file $(pwd)/.env -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG 
 
-echo -e "\n"
-
-echo -e "*****************************************************************"
+echo -e "\n*****************************************************************"
 echo -e "                                                                 "
 echo -e "d888888b  d8b   db   .o88b.  d88888b  d8888b.  d888888b   .d88b. "
 echo -e "   88     888o  88  d8P  Y8  88       88   8D   ~~88~~   .8P  Y8."
