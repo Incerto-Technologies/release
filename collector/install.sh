@@ -270,7 +270,9 @@ if [ -z "$HOST_ID" ]; then
     exit 1
 fi
 echo -e "[INFO] hostID fetched: $HOST_ID"
+
 update_env_file "HOST_ID" "$HOST_ID"
+update_env_file "BACKEND_URL" "$BACKEND_URL"
 
 # Run the new container
 echo -e "[INFO] Starting a new container with the latest image..."
