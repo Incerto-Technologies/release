@@ -1,8 +1,8 @@
 receivers:
   incerto_clickhouse:
     collection_interval: 60s
-    endpoint: localhost:9000
-    username: default
+    endpoint: ${env:CLICKHOUSE_ENDPOINT}
+    username: ${env:CLICKHOUSE_USERNAME}
     exists:
       - name: free_disk_below_20_percent
         query: SELECT SUM(total_space) AS TotalSpace, SUM(free_space - keep_free_space) AS AvailableSpace FROM system.disks HAVING AvailableSpace < (0.2 * TotalSpace)
@@ -110,8 +110,8 @@ receivers:
 exporters:
   
   otlphttp:
-    endpoint: http://10.20.129.30:8080/api/v1/alerts/generated-metrics/01JEAPRN28DA9VSWNTDNZ49FQE
-    metrics_endpoint: http://10.20.129.30:8080/api/v1/alerts/generated-metrics/01JEAPRN28DA9VSWNTDNZ49FQE
+    endpoint: ${env:BACKEND_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
+    metrics_endpoint: ${env:BACKEND_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
     encoding: json
     compression: none
 
@@ -123,4 +123,4 @@ service:
   pipelines:
     metrics:
       receivers: [incerto_clickhouse]
-      exporters: [debug]
+      exporters: [debug, otlphttp]
