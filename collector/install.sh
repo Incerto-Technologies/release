@@ -13,12 +13,12 @@ IMAGE_TAG="latest"
 CONTAINER_NAME="incerto-collector"
 
 # `config.yaml`
-COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/config.yaml"
+COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/config.yaml"
 COLLECTOR_CONFIG_FILE="config.yaml"
 COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
 
 # `.env`
-COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/.env"
+COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/.env"
 COLLECTOR_ENV_FILE=".env"
 COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 
@@ -99,7 +99,7 @@ configure_docker_post_install() {
     echo -e "[INFO] Configuring Docker group and permissions ..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -s -- --backend-url $BACKEND_URL"
+    echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --backend-url $BACKEND_URL"
 }
 
 # check and install Docker
@@ -183,7 +183,7 @@ check_docker_permissions() {
         echo -e "[INFO] Adding user \`$USER\` to the \`docker\` group ..."
         sudo usermod -aG docker $USER
         echo -e "[INFO] User \`$USER\` added to the \`docker\` group."
-        echo -e "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/collector/refs/heads/main/install.sh | sh -s -- --backend-url $BACKEND_URL"
+        echo -e "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --backend-url $BACKEND_URL"
         exit 0
     fi
 }
