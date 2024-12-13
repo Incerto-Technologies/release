@@ -281,7 +281,7 @@ echo -e "[INFO] Public IP: $PUBLIC_IP"
 
 # Fetch hostID from backend using POST
 echo -e "[INFO] Fetching hostID from the backend ..."
-HOST_ID_RESPONSE=$(curl -sf -X POST \
+HOST_ID_RESPONSE=$(curl -sf --max-time 5 -X POST \
   "$SERVICE_URL/api/v1/open-host-detail" \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
