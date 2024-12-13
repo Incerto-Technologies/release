@@ -30,6 +30,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --service-url)
             SERVICE_URL="$2"
+            if [ -z "$SERVICE_URL" ]; then
+                echo -e "[ERROR] Missing value for --service-url. Please provide a valid URL."
+                exit 1
+            fi
             shift 2
             ;;
         --type)
@@ -47,19 +51,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Check if the `service-url` argument is provided
-if [ -z "$SERVICE_URL" ]; then
-    echo -e "[ERROR] The --service-url argument is required."
-    exit 1
-fi
-
-# Check if the `type` argument is provided and valid
-if [ -z "$TYPE" ]; then
-    echo -e "[ERROR] The --type argument is required. Allowed values are 'worker' or 'keeper'."
-    exit 1
-fi
-
-echo -e "\n[INFO] Using SERVICE_URL: $SERVICE_URL\n\n"
+echo -e "\n[INFO] Using service-url: $SERVICE_URL and type: $TYPE\n\n"
 
 # Determine the correct config.yaml URL based on the type
 if [ "$TYPE" == "worker" ]; then
