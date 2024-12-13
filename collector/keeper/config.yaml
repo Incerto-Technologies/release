@@ -11,8 +11,8 @@ receivers:
 exporters:
   
   otlphttp:
-    endpoint: ${env:BACKEND_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
-    metrics_endpoint: ${env:BACKEND_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
+    endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
+    metrics_endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
     encoding: json
     compression: none
 
