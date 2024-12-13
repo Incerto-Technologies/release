@@ -12,8 +12,7 @@ IMAGE_NAME="collector"
 IMAGE_TAG="latest"
 CONTAINER_NAME="incerto-collector"
 
-# `config.yaml`
-COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/config.yaml"
+COLLECTOR_CONFIG_URL="none"
 COLLECTOR_CONFIG_FILE="config.yaml"
 COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
 
@@ -22,14 +21,23 @@ COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/releas
 COLLECTOR_ENV_FILE=".env"
 COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 
-# to get `HOST_ID` for a unique host
-BACKEND_URL="http://localhost:8080"
+# get url for 
+SERVICE_URL="none"
+# run collector for `worker` or `keeper`
+TYPE="none"
 
-# parse command-line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --backend-url)
-            BACKEND_URL="$2"
+        --service-url)
+            SERVICE_URL="$2"
+            shift 2
+            ;;
+        --type)
+            TYPE="$2"
+            if [[ "$TYPE" != "worker" && "$TYPE" != "keeper" ]]; then
+                echo -e "[ERROR] Invalid value for --type. Allowed values are 'worker' or 'keeper'."
+                exit 1
+            fi
             shift 2
             ;;
         *)
@@ -39,7 +47,29 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo -e "\n[INFO] Using BACKEND_URL: $BACKEND_URL\n\n"
+# Check if the `service-url` argument is provided
+if [ -z "$SERVICE_URL" ]; then
+    echo -e "[ERROR] The --service-url argument is required."
+    exit 1
+fi
+
+# Check if the `type` argument is provided and valid
+if [ -z "$TYPE" ]; then
+    echo -e "[ERROR] The --type argument is required. Allowed values are 'worker' or 'keeper'."
+    exit 1
+fi
+
+echo -e "\n[INFO] Using SERVICE_URL: $SERVICE_URL\n\n"
+
+# Determine the correct config.yaml URL based on the type
+if [ "$TYPE" == "worker" ]; then
+    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/worker/config.yaml"
+elif [ "$TYPE" == "keeper" ]; then
+    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/keeper/config.yaml"
+else
+    echo -e "[ERROR] Invalid type provided. Allowed values are 'worker' or 'keeper'."
+    exit 1
+fi
 
 # function to install Docker on Ubuntu
 install_docker_ubuntu() {
@@ -99,7 +129,7 @@ configure_docker_post_install() {
     echo -e "[INFO] Configuring Docker group and permissions ..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --backend-url $BACKEND_URL"
+    echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL"
 }
 
 # check and install Docker
@@ -183,7 +213,7 @@ check_docker_permissions() {
         echo -e "[INFO] Adding user \`$USER\` to the \`docker\` group ..."
         sudo usermod -aG docker $USER
         echo -e "[INFO] User \`$USER\` added to the \`docker\` group."
-        echo -e "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --backend-url $BACKEND_URL"
+        echo -e "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL"
         exit 0
     fi
 }
@@ -209,6 +239,7 @@ else
 fi
 
 # download `config.yaml` file and handle backup if it already exists
+# the `config.yaml` changes depending on the type (worker vs keeper) 
 echo -e "[INFO] Checking for an existing \`config.yaml\` file ..."
 if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
     echo -e "[INFO] \`config.yaml\` file found. Creating a backup ..."
@@ -251,7 +282,7 @@ echo -e "[INFO] Public IP: $PUBLIC_IP"
 # Fetch hostID from backend using POST
 echo -e "[INFO] Fetching hostID from the backend ..."
 HOST_ID_RESPONSE=$(curl -sf -X POST \
-  "$BACKEND_URL/api/v1/open-host-detail" \
+  "$SERVICE_URL/api/v1/open-host-detail" \
   -H "accept: application/json" \
   -H "Content-Type: application/json" \
   -d "{
@@ -272,7 +303,7 @@ fi
 echo -e "[INFO] hostID fetched: $HOST_ID"
 
 update_env_file "HOST_ID" "$HOST_ID"
-update_env_file "BACKEND_URL" "$BACKEND_URL"
+update_env_file "SERVICE_URL" "$SERVICE_URL"
 
 # Run the new container
 echo -e "[INFO] Starting a new container with the latest image..."
