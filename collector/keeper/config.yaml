@@ -1,0 +1,27 @@
+receivers:
+  incerto_clickhouse:
+    collection_interval: 60s
+    flwCommands:
+      - endpoint: localhost:9181
+        commands:
+          - ruok
+          - mntr
+          - srvr
+
+exporters:
+  
+  otlphttp:
+    endpoint: ${env:BACKEND_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
+    metrics_endpoint: ${env:BACKEND_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
+    encoding: json
+    compression: none
+
+  debug:
+    verbosity: detailed
+
+service:
+  
+  pipelines:
+    metrics:
+      receivers: [incerto_clickhouse]
+      exporters: [debug, otlphttp]
