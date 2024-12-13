@@ -51,7 +51,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo -e "\n[INFO] Using service-url: $SERVICE_URL and type: $TYPE\n\n"
+echo -e "\n[INFO] Using service-url: $SERVICE_URL and type: $TYPE.\n\n"
 
 # Determine the correct config.yaml URL based on the type
 if [ "$TYPE" == "worker" ]; then
