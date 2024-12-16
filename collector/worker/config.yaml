@@ -21,11 +21,11 @@ receivers:
         includeQueryLog: false
 #
 #      - name: high_keeper_storage_lock_wait
-#        query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperStorageLockWaitMicroseconds) FROM system.metric_log where event_time >now() - INTERVAL 3 MONTHS) AS quantile SELECT event_time, ProfileEvent_KeeperStorageLockWaitMicroseconds FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperStorageLockWaitMicroseconds > quantile
+#        query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperStorageLockWaitMicroseconds) FROM system.metric_log where event_time > now() - INTERVAL 3 MONTHS) AS quantile SELECT event_time, ProfileEvent_KeeperStorageLockWaitMicroseconds FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperStorageLockWaitMicroseconds > quantile
 #        includeQueryLog: false
 #
 #      - name: high_keeper_single_request_latency
-#        query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperTotalElapsedMicroseconds) FROM system.metric_log where event_time > now() - INTERVAL 3 MONTHS) AS quantile SELECT event_time, ProfileEvent_KeeperTotalElapsedMicroseconds FROM system.metric_log WHERE event_time> now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperTotalElapsedMicroseconds > quantile
+#        query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperTotalElapsedMicroseconds) FROM system.metric_log where event_time > now() - INTERVAL 3 MONTHS) AS quantile SELECT event_time, ProfileEvent_KeeperTotalElapsedMicroseconds FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperTotalElapsedMicroseconds > quantile
 #        includeQueryLog: false
 
       - name: zookeeper_user_exception
@@ -52,6 +52,14 @@ receivers:
         query: "select * from (select sum(multiIf(type = '1', 1, type = '2', -1, 0)) as value from system.query_log where event_time > now() - INTERVAL 1 MINUTE) where value > 4"
         includeQueryLog: false
 
+      - name: query_high_execution_time
+        query: "WITH (SELECT quantileExact(0.9999)(query_duration_ms) FROM system.query_log WHERE event_time > (now() - toIntervalDay(30))) AS q SELECT event_time, query_id, query, query_duration_ms FROM system.query_log WHERE (query_duration_ms > q) AND (event_time > (now() - toIntervalMinute(10)))"
+        includeQueryLog: false
+
+      - name: query_high_read_bytes
+        query: "WITH (SELECT quantileExact(0.9999)(read_bytes) FROM system.query_log WHERE event_time > (now() - toIntervalDay(30))) AS q SELECT event_time    , query_id, query, read_bytes FROM system.query_log WHERE (read_bytes > q) AND (event_time > (now() - toIntervalMinute(10)))"
+        includeQueryLog: false
+
       - name: load_average_high
         query: "select * from (with (SELECT toInt32(regexpExtract(value, '\\((\\d+)\\)')) AS max_threads_int FROM system.settings WHERE name = 'max_threads' )  as cores select value/cores as average_core, event_time from  system.asynchronous_metric_log  where metric  = 'LoadAverage1' order by event_time desc  limit 1 )  where average_core > 1"
         includeQueryLog: false
@@ -74,7 +82,7 @@ receivers:
         query: "select * from system.replication_queue where last_exception_time > now() - INTERVAL 10 MINUTE"
         includeQueryLog: false
       - name: running_queries_high
-        query: "with (select quantileExact(0.9999)(CurrentMetric_Query) from system.metric_log where event_time > now() -  INTERVAL 1 MONTH) as q  select  event_time,  CurrentMetric_Query from system.metric_log where CurrentMetric_Query > q and event_time > now() - INTERVAL 1MINUTE"
+        query: "with (select quantileExact(0.9999)(CurrentMetric_Query) from system.metric_log where event_time > now() -  INTERVAL 1 MONTH) as q  select  event_time,  CurrentMetric_Query from system.metric_log where CurrentMetric_Query > q and event_time > now() - INTERVAL 1  MINUTE"
         includeQueryLog: false
       - name: query_time_high
         query: "with (select quantileExact(0.9999)(ProfileEvent_QueryTimeMicroseconds) from system.metric_log where event_time > now() -  INTERVAL 1 MONTH) as q  select  event_time,  ProfileEvent_QueryTimeMicroseconds from system.metric_log where ProfileEvent_QueryTimeMicroseconds >q and event_time > now() - INTERVAL 1  MINUTE"
@@ -82,13 +90,25 @@ receivers:
       - name: os_wait_high
         query: "with (select quantileExact(0.9999)(ProfileEvent_OSCPUWaitMicroseconds) from system.metric_log where event_time > now() -  INTERVAL 1 MONTH) as q  select  event_time,  ProfileEvent_OSCPUWaitMicroseconds from system.metric_log where ProfileEvent_OSCPUWaitMicroseconds > q and event_time > now() - INTERVAL 1 MINUTE"
         includeQueryLog: false
+      - name: unreachable_host
+        query: "with (select uniqExact(host_name) from system.clusters where cluster != 'default') as val1, (select uniqExact(hostName()) from clusterAllReplicas('clickhouse_cluster') settings skip_unavailable_shards = 1) as val2 select * from (select val1 == val2 as allConnected) where allConnected = 0"
+        includeQueryLog: false
+          #      - name: unreachable_host
+          #        query: "SELECT 1 WHERE (SELECT uniqExact(host_name) FROM system.clusters WHERE cluster = 'clickhouse_cluster') != (SELECT uniqExact(hostName()) FROM clusterAllReplicas('clickhouse_cluster') SETTINGS skip_unavailable_shards = 1)"
+          #        includeQueryLog: false
+
+
     select:
       - name: too_many_parts
         query: SELECT database, `table`, count(*) as DataCount FROM system.parts WHERE active = 1 AND database != 'system' GROUP BY database, `table`, active HAVING count(*) > (SELECT IF(toInt32OrZero(value) = 0, 3000, toInt32OrZero(value)) * 0.9 FROM system.merge_tree_settings WHERE name = 'parts_to_throw_insert') ORDER BY database ASC, `table` ASC
         includeQueryLog: false
-
+ 
       - name: query_running_since_minute
         query: "select query_id from system.processes where elapsed >= 60"
+        includeQueryLog: false
+
+      - name: read_only_tables
+        query: "select database, table, zookeeper_path, replica_name from system.replicas where is_readonly = 1"
         includeQueryLog: false
 
       - name: clickhouse_worker_down_10_minutes
@@ -102,11 +122,6 @@ receivers:
       - name: duplicate_macros
         query: "SELECT data.Macro as Macro, arrayStringConcat(groupArray(HostName), ',') as Hosts FROM (SELECT hostName() as HostName, arrayStringConcat(groupArray(CONCAT(macro, ':', substitution)), ',') as Macro FROM clusterAllReplicas('clickhouse_cluster', 'system.macros') GROUP BY hostName()) as data GROUP BY data.Macro HAVING COUNT(*) > 1"
         includeQueryLog: false
-
-      - name: unreachable_host
-        query: "SELECT knownHosts.hostName AS `UnreachableHost` FROM (SELECT host_name AS `hostName` FROM system.clusters WHERE cluster = 'clickhouse_cluster') AS knownHosts LEFT JOIN (SELECT hostName() AS `hostName` FROM clusterAllReplicas('clickhouse_cluster') SETTINGS skip_unavailable_shards = 1) AS activeHosts ON knownHosts.hostName = activeHosts.hostName WHERE (activeHosts.hostName = '' OR activeHosts.hostName IS NULL)"
-        includeQueryLog: false
-
 exporters:
   
   otlphttp:
