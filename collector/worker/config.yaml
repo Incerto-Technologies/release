@@ -63,6 +63,12 @@ receivers:
       - name: load_average_high
         query: "select * from (with (SELECT toInt32(regexpExtract(value, '\\((\\d+)\\)')) AS max_threads_int FROM system.settings WHERE name = 'max_threads' )  as cores select value/cores as average_core, event_time from  system.asynchronous_metric_log  where metric  = 'LoadAverage1' order by event_time desc  limit 1 )  where average_core > 1"
         includeQueryLog: false
+      - name: failed_mutation
+        query: "SELECT * FROM system.mutations WHERE is_done = 0 AND latest_failed_part != '' AND ((now() - latest_fail_time) < (INTERVAL 1 MINUTE))"
+        includeQueryLog: false
+      - name: error_in_parts
+        query: "SELECT event_time, event_type, `table`, error, errorCodeToName(error) AS error_code FROM system.part_log WHERE event_time >= (NOW() - (INTERVAL 1 MINUTE)) AND error > 0"
+        includeQueryLog: false
       - name: queries_running_10
         query: "select * from (select count(*) as value from system.processes) where value > 10"
         includeQueryLog: false
