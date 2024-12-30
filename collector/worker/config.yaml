@@ -91,7 +91,7 @@ receivers:
         query: "select query_id from system.query_log where type > 2 and event_time > now() - INTERVAL 10 Minute"
         includeQueryLog: false
       - name: data_change_queries
-        query: "SELECT query_id FROM system.query_log WHERE (event_time >= (now() - toIntervalMinute(10))) AND (type = 'QueryFinish') AND ((query ILIKE '%DROP%') OR (query ILIKE '%SYSTEM%') OR (query ILIKE '%ALTER%') OR (query ILIKE '%truncate%)) ORDER BY event_time DESC"
+        query: "SELECT query_id, query FROM system.query_log WHERE (event_time >= (now() - toIntervalMinute(10))) AND (type = 'QueryFinish') AND ((query ILIKE 'DROP%') OR (query ILIKE 'SYSTEM%') OR (query ILIKE 'ALTER%') OR (query ILIKE 'truncate%'))"
         includeQueryLog: false
       - name: running_queries_high
         query: "with (select quantileExact(0.9999)(CurrentMetric_Query) from system.metric_log where event_time > now() -  INTERVAL 1 MONTH) as q  select  event_time,  CurrentMetric_Query from system.metric_log where CurrentMetric_Query > q and event_time > now() - INTERVAL 1  MINUTE"
