@@ -9,7 +9,7 @@ receivers:
         includeQueryLog: false
 
       - name: available_memory_below_90_percentile
-        query: WITH (SELECT quantileExact(0.1)(value) FROM system.asynchronous_metric_log WHERE metric = 'OSMemoryAvailable' AND event_time > now() - INTERVAL 1 MONTH) AS quantile SELECT event_time, value FROM system.asynchronous_metric_log WHERE  metric = 'OSMemoryAvailable' AND event_time > now() - INTERVAL 1 MINUTE AND value < quantile
+        query: WITH (SELECT quantileExact(0.0001)(value) FROM system.asynchronous_metric_log WHERE metric = 'OSMemoryAvailable' AND event_time > now() - INTERVAL 1 MONTH) AS quantile SELECT event_time, value FROM system.asynchronous_metric_log WHERE  metric = 'OSMemoryAvailable' AND event_time > now() - INTERVAL 1 MINUTE AND value < quantile
         includeQueryLog: false
 
       - name: multiple_zookeeper_sessions
