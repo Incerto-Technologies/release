@@ -112,7 +112,7 @@ receivers:
 
     select:
       - name: insert_exception
-        query: "SELECT exception_code, exception AS query_id FROM system.query_log WHERE (type = '4') AND (query_kind = 'Insert') AND (event_time > (now() - toIntervalMinute(2))) ORDER BY event_time DESC"
+        query: "SELECT type, query_duration_ms, current_database, query, exception_code, exception, query_id FROM system.query_log WHERE (type = '4') AND (query_kind = 'Insert') AND (event_time > (now() - toIntervalMinute(2)))"
         includeQueryLog: false
       - name: too_many_parts
         query: SELECT database, `table`, count(*) as DataCount FROM system.parts WHERE active = 1 AND database != 'system' GROUP BY database, `table`, active HAVING count(*) > (SELECT IF(toInt32OrZero(value) = 0, 3000, toInt32OrZero(value)) * 0.9 FROM system.merge_tree_settings WHERE name = 'parts_to_throw_insert') ORDER BY database ASC, `table` ASC
