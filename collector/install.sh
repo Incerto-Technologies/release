@@ -190,7 +190,7 @@ update_env_file() {
             printf "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE.\n\n"
         else
             printf "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it."
-            printf "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair
+            echo "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair
             printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
         fi
     fi
