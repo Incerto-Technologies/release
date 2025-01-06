@@ -26,7 +26,7 @@ SERVICE_URL="none"
 # run collector for `worker` or `keeper`
 TYPE="none"
 
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
     case $1 in
         --service-url)
             SERVICE_URL="$2"
@@ -38,7 +38,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --type)
             TYPE="$2"
-            if [[ "$TYPE" != "worker" && "$TYPE" != "keeper" ]]; then
+            if [ "$TYPE" != "worker" ] && [ "$TYPE" != "keeper" ]; then
                 echo -e "[ERROR] Invalid value for --type. Allowed values are 'worker' or 'keeper'."
                 exit 1
             fi
@@ -54,9 +54,9 @@ done
 echo -e "\n[INFO] Using service-url: $SERVICE_URL and type: $TYPE.\n\n"
 
 # Determine the correct config.yaml URL based on the type
-if [ "$TYPE" == "worker" ]; then
+if [ "$TYPE" = "worker" ]; then
     COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/worker/config.yaml"
-elif [ "$TYPE" == "keeper" ]; then
+elif [ "$TYPE" = "keeper" ]; then
     COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/keeper/config.yaml"
 else
     echo -e "[ERROR] Invalid type provided. Allowed values are 'worker' or 'keeper'."
