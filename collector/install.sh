@@ -86,7 +86,7 @@ install_docker_rhel() {
     # Check for Amazon Linux version
     if [ -f /etc/os-release ]; then
         . /etc/os-release
-        if [[ "$ID" == "amzn" && "$VERSION_ID" == "2" ]]; then
+        if [ "$ID" = "amzn" ] && [ "$VERSION_ID" = "2" ]; then
             echo -e "[INFO] Detected Amazon Linux 2. Installing Docker for Amazon Linux 2 ..."
             sudo yum update -y
             sudo amazon-linux-extras enable docker
@@ -95,7 +95,7 @@ install_docker_rhel() {
             sudo systemctl enable docker
             echo -e "[SUCCESS] Docker installed on Amazon Linux 2."
             return
-        elif [[ "$ID" == "amzn" && "$VERSION_ID" == "2023" ]]; then
+        elif [ "$ID" = "amzn" ] && [ "$VERSION_ID" = "2023" ]; then
             echo -e "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023 ..."
             sudo yum update -y
             sudo dnf install -y docker
