@@ -301,7 +301,7 @@ update_env_file "SERVICE_URL" "$SERVICE_URL"
 printf "[INFO] Starting a new container with the latest image...\n"
 docker run -d --name incerto-collector --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
-printf "                      Container is up and running.                      \n"
+printf "\n                      Container is up and running.                      \n"
 
 printf "\n************************************************************************\n"
 printf "                                                                        \n"
