@@ -140,8 +140,8 @@ receivers:
 exporters:
   
   otlphttp:
-    endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
-    metrics_endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}
+    endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}?domain=clickhouse
+    metrics_endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}?domain=clickhouse
     encoding: json
     compression: none
 
