@@ -313,26 +313,25 @@ printf "[INFO] Public IP: $PUBLIC_IP\n"
 
 # Fetch hostID from backend using POST
 printf "[INFO] Fetching hostID from the backend ...\n"
-HOST_ID="ggjabbajenny"
-# HOST_ID_RESPONSE=$(curl -sf --max-time 5 -X POST \
-#   "$SERVICE_URL/api/v1/open-host-detail" \
-#   -H "accept: application/json" \
-#   -H "Content-Type: application/json" \
-#   -d "{
-#         \"privateIP\": \"$PRIVATE_IP\",
-#         \"publicIP\": \"$PUBLIC_IP\"
-#       }")
+HOST_ID_RESPONSE=$(curl -sf --max-time 5 -X POST \
+  "$SERVICE_URL/api/v1/open-host-detail" \
+  -H "accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d "{
+        \"privateIP\": \"$PRIVATE_IP\",
+        \"publicIP\": \"$PUBLIC_IP\"
+      }")
 
-# if [ $? -ne 0 ]; then
-#     printf "[ERROR] Failed to fetch hostID from the backend. Exiting.\n"
-#     exit 1
-# fi
+if [ $? -ne 0 ]; then
+    printf "[ERROR] Failed to fetch hostID from the backend. Exiting.\n"
+    exit 1
+fi
 
-# HOST_ID=$(echo "$HOST_ID_RESPONSE" | jq -r '.hostId')
-# if [ -z "$HOST_ID" ]; then
-#     printf "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
-#     exit 1
-# fi
+HOST_ID=$(echo "$HOST_ID_RESPONSE" | jq -r '.hostId')
+if [ -z "$HOST_ID" ]; then
+    printf "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
+    exit 1
+fi
 printf "[INFO] hostID fetched: $HOST_ID\n"
 
 # update env variables
