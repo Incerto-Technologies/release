@@ -69,6 +69,13 @@ while [ $# -gt 0 ]; do
             ;;
         --username)
             USERNAME="$2"
+            if [ "$DATABASE" = "clickhouse" ]; then
+                USERNAME="default"
+            elif [ "$DATABASE" = "postgres" ]; then
+                USERNAME="postgres"
+            else
+                :
+            fi
             shift 2
             ;;
         --password)
