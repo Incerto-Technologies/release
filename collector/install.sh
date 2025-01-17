@@ -220,7 +220,7 @@ update_env_file() {
     # Check if the .env file exists
     if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
         printf "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one.\n"
-        echo -e "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
+        echo "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
         printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
     else
         # Check if the key already exists
@@ -230,7 +230,7 @@ update_env_file() {
             printf "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE.\n\n"
         else
             printf "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it.\n"
-            echo -e "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair with a preceeding newline
+            echo "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair with a preceeding newline
             printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
         fi
     fi
