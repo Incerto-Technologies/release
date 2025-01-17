@@ -24,7 +24,11 @@ COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 # get url for 
 SERVICE_URL="none"
 # run collector for `worker` or `keeper`
+DATABASE="none"
 TYPE="none"
+ENDPOINT="none"
+USERNAME=""
+PASSWORD=""
 
 while [ $# -gt 0 ]; do
     case $1 in
@@ -36,12 +40,39 @@ while [ $# -gt 0 ]; do
             fi
             shift 2
             ;;
-        --type)
-            TYPE="$2"
-            if [ "$TYPE" != "worker" ] && [ "$TYPE" != "keeper" ]; then
-                printf "[ERROR] Invalid value for --type. Allowed values are 'worker' or 'keeper'.\n"
+        --database)
+            DATABASE="$2"
+            if [ -z "$DATABASE" ]; then
+                printf "[ERROR] Missing value for --database. Please provide a valid database.\n"
                 exit 1
             fi
+            shift 2
+            ;;
+        --type)
+            TYPE="$2"
+            if [ -z "$TYPE" ]; then
+                printf "[ERROR] Missing value for --type. Please provide a valid type for the given database.\n"
+                exit 1
+            fi
+            shift 2
+            ;;
+        --endpoint)
+            ENDPOINT="$2"
+            if [ "$DATABASE" = "clickhouse" ]; then
+                ENDPOINT="localhost:9000"
+            elif [ "$DATABASE" = "postgres" ]; then
+                ENDPOINT="localhost:5432"
+            else
+                printf "[INFO] Nothing to update\n"
+            fi
+            shift 2
+            ;;
+        --username)
+            USERNAME="$2"
+            shift 2
+            ;;
+        --password)
+            PASSWORD="$2"
             shift 2
             ;;
         *)
@@ -51,15 +82,24 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-printf "\n[INFO] Using service-url: $SERVICE_URL and type: $TYPE.\n\n"
+printf "\n[INFO] Proceeding with using \n    service-url: $SERVICE_URL \n    database: $DATABASE \ntype: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
 
+# Validate database and type combinations  
 # Determine the correct config.yaml URL based on the type
-if [ "$TYPE" = "worker" ]; then
-    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/worker/config.yaml"
-elif [ "$TYPE" = "keeper" ]; then
-    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/keeper/config.yaml"
+if [ "$DATABASE" = "clickhouse" ]; then
+    if [ "$TYPE" != "worker" ] && [ "$TYPE" != "keeper" ]; then
+        printf "[ERROR] Invalid type for clickhouse. Allowed values are 'worker' or 'keeper'.\n"
+        exit 1
+    fi
+    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
+elif [ "$DATABASE" = "postgres" ]; then
+    if [ "$TYPE" != "master" ] && [ "$TYPE" != "replica" ]; then
+        printf "[ERROR] Invalid type for postgres. Allowed values are 'master' or 'replica'.\n"
+        exit 1
+    fi
+    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
 else
-    printf "[ERROR] Invalid type provided. Allowed values are 'worker' or 'keeper'.\n"
+    printf "[ERROR] Unsupported database type. Allowed values are 'clickhouse' or 'postgres'.\n"
     exit 1
 fi
 
@@ -273,29 +313,44 @@ printf "[INFO] Public IP: $PUBLIC_IP\n"
 
 # Fetch hostID from backend using POST
 printf "[INFO] Fetching hostID from the backend ...\n"
-HOST_ID_RESPONSE=$(curl -sf --max-time 5 -X POST \
-  "$SERVICE_URL/api/v1/open-host-detail" \
-  -H "accept: application/json" \
-  -H "Content-Type: application/json" \
-  -d "{
-        \"privateIP\": \"$PRIVATE_IP\",
-        \"publicIP\": \"$PUBLIC_IP\"
-      }")
+HOST_ID="ggjabbajenny"
+# HOST_ID_RESPONSE=$(curl -sf --max-time 5 -X POST \
+#   "$SERVICE_URL/api/v1/open-host-detail" \
+#   -H "accept: application/json" \
+#   -H "Content-Type: application/json" \
+#   -d "{
+#         \"privateIP\": \"$PRIVATE_IP\",
+#         \"publicIP\": \"$PUBLIC_IP\"
+#       }")
 
-if [ $? -ne 0 ]; then
-    printf "[ERROR] Failed to fetch hostID from the backend. Exiting.\n"
-    exit 1
-fi
+# if [ $? -ne 0 ]; then
+#     printf "[ERROR] Failed to fetch hostID from the backend. Exiting.\n"
+#     exit 1
+# fi
 
-HOST_ID=$(echo "$HOST_ID_RESPONSE" | jq -r '.hostId')
-if [ -z "$HOST_ID" ]; then
-    printf "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
-    exit 1
-fi
+# HOST_ID=$(echo "$HOST_ID_RESPONSE" | jq -r '.hostId')
+# if [ -z "$HOST_ID" ]; then
+#     printf "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
+#     exit 1
+# fi
 printf "[INFO] hostID fetched: $HOST_ID\n"
 
+# update env variables
 update_env_file "HOST_ID" "$HOST_ID"
 update_env_file "SERVICE_URL" "$SERVICE_URL"
+if [ "$DATABASE" = "clickhouse" ]; then
+    ENDPOINT="localhost:9000"
+    update_env_file "CLICKHOUSE_ENDPOINT" "$ENDPOINT"
+    update_env_file "CLICKHOUSE_USERNAME" "$USERNAME"
+    update_env_file "CLICKHOUSE_PASSWORD" "$PASSWORD"
+elif [ "$DATABASE" = "postgres" ]; then
+    ENDPOINT="localhost:5432"
+    update_env_file "POSTGRES_ENDPOINT" "$ENDPOINT"
+    update_env_file "POSTGRES_USERNAME" "$USERNAME"
+    update_env_file "POSTGRES_PASSWORD" "$PASSWORD"
+else
+    printf "[INFO] Nothing to update\n"
+fi
 
 # Run the new container
 printf "[INFO] Starting a new container with the latest image...\n"
