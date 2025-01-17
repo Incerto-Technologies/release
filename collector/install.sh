@@ -82,7 +82,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-printf "\n[INFO] Proceeding with using \n    service-url: $SERVICE_URL \n    database: $DATABASE \ntype: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
+printf "\n[INFO] Proceeding with using \n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
 
 # Validate database and type combinations  
 # Determine the correct config.yaml URL based on the type
@@ -161,7 +161,7 @@ configure_docker_post_install() {
     printf "[INFO] Configuring Docker group and permissions ...\n"
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    printf "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+    printf "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] And run the same command."
 }
 
 # check and install Docker
