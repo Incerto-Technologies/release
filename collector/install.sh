@@ -63,7 +63,7 @@ while [ $# -gt 0 ]; do
             elif [ "$DATABASE" = "postgres" ]; then
                 ENDPOINT="localhost:5432"
             else
-                printf "[INFO] Nothing to update\n"
+                :
             fi
             shift 2
             ;;
@@ -82,7 +82,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-printf "\n[INFO] Proceeding with using \n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
+printf "\n[INFO] Proceeding with using \n\n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
 
 # Validate database and type combinations  
 # Determine the correct config.yaml URL based on the type
@@ -339,12 +339,10 @@ printf "[INFO] hostID fetched: $HOST_ID\n"
 update_env_file "HOST_ID" "$HOST_ID"
 update_env_file "SERVICE_URL" "$SERVICE_URL"
 if [ "$DATABASE" = "clickhouse" ]; then
-    ENDPOINT="localhost:9000"
     update_env_file "CLICKHOUSE_ENDPOINT" "$ENDPOINT"
     update_env_file "CLICKHOUSE_USERNAME" "$USERNAME"
     update_env_file "CLICKHOUSE_PASSWORD" "$PASSWORD"
 elif [ "$DATABASE" = "postgres" ]; then
-    ENDPOINT="localhost:5432"
     update_env_file "POSTGRES_ENDPOINT" "$ENDPOINT"
     update_env_file "POSTGRES_USERNAME" "$USERNAME"
     update_env_file "POSTGRES_PASSWORD" "$PASSWORD"
