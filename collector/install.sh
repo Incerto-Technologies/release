@@ -24,93 +24,140 @@ COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 # get url for 
 SERVICE_URL="none"
 # run collector for `worker` or `keeper`
+DATABASE="none"
 TYPE="none"
+ENDPOINT="none"
+USERNAME=""
+PASSWORD=""
 
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
     case $1 in
         --service-url)
             SERVICE_URL="$2"
             if [ -z "$SERVICE_URL" ]; then
-                echo -e "[ERROR] Missing value for --service-url. Please provide a valid URL."
+                printf "[ERROR] Missing value for --service-url. Please provide a valid URL.\n"
+                exit 1
+            fi
+            shift 2
+            ;;
+        --database)
+            DATABASE="$2"
+            if [ -z "$DATABASE" ]; then
+                printf "[ERROR] Missing value for --database. Please provide a valid database.\n"
                 exit 1
             fi
             shift 2
             ;;
         --type)
             TYPE="$2"
-            if [[ "$TYPE" != "worker" && "$TYPE" != "keeper" ]]; then
-                echo -e "[ERROR] Invalid value for --type. Allowed values are 'worker' or 'keeper'."
+            if [ -z "$TYPE" ]; then
+                printf "[ERROR] Missing value for --type. Please provide a valid type for the given database.\n"
                 exit 1
             fi
             shift 2
             ;;
+        --endpoint)
+            ENDPOINT="$2"
+            if [ "$DATABASE" = "clickhouse" ]; then
+                ENDPOINT="localhost:9000"
+            elif [ "$DATABASE" = "postgres" ]; then
+                ENDPOINT="localhost:5432"
+            else
+                :
+            fi
+            shift 2
+            ;;
+        --username)
+            USERNAME="$2"
+            if [ "$DATABASE" = "clickhouse" ]; then
+                USERNAME="default"
+            elif [ "$DATABASE" = "postgres" ]; then
+                USERNAME="postgres"
+            else
+                :
+            fi
+            shift 2
+            ;;
+        --password)
+            PASSWORD="$2"
+            shift 2
+            ;;
         *)
-            echo -e "[ERROR] Unknown option: $1"
+            printf "[ERROR] Unknown option: $1\n"
             exit 1
             ;;
     esac
 done
 
-echo -e "\n[INFO] Using service-url: $SERVICE_URL and type: $TYPE.\n\n"
+printf "\n[INFO] Proceeding with using \n\n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
 
+# Validate database and type combinations  
 # Determine the correct config.yaml URL based on the type
-if [ "$TYPE" == "worker" ]; then
-    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/worker/config.yaml"
-elif [ "$TYPE" == "keeper" ]; then
-    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/keeper/config.yaml"
+if [ "$DATABASE" = "clickhouse" ]; then
+    if [ "$TYPE" != "worker" ] && [ "$TYPE" != "keeper" ]; then
+        printf "[ERROR] Invalid type for clickhouse. Allowed values are 'worker' or 'keeper'.\n"
+        exit 1
+    fi
+    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
+elif [ "$DATABASE" = "postgres" ]; then
+    if [ "$TYPE" != "master" ] && [ "$TYPE" != "replica" ]; then
+        printf "[ERROR] Invalid type for postgres. Allowed values are 'master' or 'replica'.\n"
+        exit 1
+    fi
+    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
 else
-    echo -e "[ERROR] Invalid type provided. Allowed values are 'worker' or 'keeper'."
+    printf "[ERROR] Unsupported database type. Allowed values are 'clickhouse' or 'postgres'.\n"
     exit 1
 fi
 
 # function to install Docker on Ubuntu
 install_docker_ubuntu() {
-    echo -e "[INFO] Installing Docker on Ubuntu ..."
+    printf "[INFO] Installing Docker on Ubuntu ...\n"
     sudo apt-get update -y
     sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
     if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
         sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
     fi
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo -e "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update -y
     sudo apt-get install -y docker-ce
     sudo systemctl enable docker
     sudo systemctl start docker
-    echo -e "[SUCCESS] Docker installed successfully on UBUNTU."
+    printf "[SUCCESS] Docker installed successfully on UBUNTU.\n"
 }
 
 # function to install Docker on RHEL
 install_docker_rhel() {
-    echo -e "[INFO] Installing Docker on RHEL ..."
+    printf "[INFO] Installing Docker on RHEL ...\n"
     # Check for Amazon Linux version
     if [ -f /etc/os-release ]; then
         . /etc/os-release
-        if [[ "$ID" == "amzn" && "$VERSION_ID" == "2" ]]; then
-            echo -e "[INFO] Detected Amazon Linux 2. Installing Docker for Amazon Linux 2 ..."
+        if [ "$ID" = "amzn" ] && [ "$VERSION_ID" = "2" ]; then
+            printf "[INFO] Detected Amazon Linux 2. Installing Docker for Amazon Linux 2 ...\n"
             sudo yum update -y
             sudo amazon-linux-extras enable docker
             sudo yum install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
-            echo -e "[SUCCESS] Docker installed on Amazon Linux 2."
+            printf "[SUCCESS] Docker installed on Amazon Linux 2.\n"
             return
-        elif [[ "$ID" == "amzn" && "$VERSION_ID" == "2023" ]]; then
-            echo -e "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023 ..."
+        elif [ "$ID" = "amzn" ] && [ "$VERSION_ID" = "2023" ]; then
+            printf "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023 ...\n"
             sudo yum update -y
             sudo dnf install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
-            echo -e "[SUCCESS] Docker installed on Amazon Linux 2023."
+            printf "[SUCCESS] Docker installed on Amazon Linux 2023.\n"
             return
         else
-            echo -e "[INFO] Detected RHEL. Installing Docker for RHEL ..."
+            printf "[INFO] Detected RHEL. Installing Docker for RHEL ...\n"
             sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc
             sudo dnf -y install dnf-plugins-core
             sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
             sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
             sudo systemctl enable --now docker
-            echo -e "[SUCCESS] Docker installed on RHEL."
+            printf "[SUCCESS] Docker installed on RHEL.\n"
             return
         fi
     fi
@@ -118,16 +165,16 @@ install_docker_rhel() {
 
 # after installation: set up Docker group and permissions
 configure_docker_post_install() {
-    echo -e "[INFO] Configuring Docker group and permissions ..."
+    printf "[INFO] Configuring Docker group and permissions ...\n"
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    echo -e "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+    printf "[SUCCESS] Docker group configured. Please logout and log back in. \n[INFO] And run the same command."
 }
 
 # check and install Docker
 install_docker() {
     if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
-        echo -e "[INFO] Docker is already installed on this machine.\n\n"
+        printf "[INFO] Docker is already installed on this machine.\n\n"
         return 0
     fi
     if [ -f /etc/os-release ]; then
@@ -136,7 +183,7 @@ install_docker() {
             ubuntu) install_docker_ubuntu ;;
             rhel | centos | amzn) install_docker_rhel ;;
             *)
-                echo -e "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported."
+                printf "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported.\n"
                 exit 1
                 ;;
         esac
@@ -144,7 +191,7 @@ install_docker() {
         configure_docker_post_install
         exit 0
     else
-        echo -e "[ERROR] OS detection failed. Unable to proceed."
+        printf "[ERROR] OS detection failed. Unable to proceed.\n"
         exit 1
     fi
 }
@@ -152,7 +199,7 @@ install_docker() {
 # check and install jq
 install_jq() {
     if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
-        echo -e "[INFO] jq is already installed on this machine.\n\n"
+        printf "[INFO] jq is already installed on this machine.\n\n"
         return 0
     fi
     if [ -f /etc/os-release ]; then
@@ -161,12 +208,12 @@ install_jq() {
             ubuntu) sudo apt-get install -y jq ;;
             rhel | centos | amzn) sudo yum install -y jq  ;;
             *)
-                echo -e "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported."
+                printf "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported.\n"
                 exit 1
                 ;;
         esac
     else
-        echo -e "[ERROR] OS detection failed. Unable to proceed."
+        printf "[ERROR] OS detection failed. Unable to proceed.\n"
         exit 1
     fi
 }
@@ -175,37 +222,37 @@ update_env_file() {
     KEY="$1"   # The key to update or add (e.g., "HOST_ID")
     VALUE="$2" # The value to set for the key
 
-    echo -e "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE"
+    printf "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE\n"
 
     # Check if the .env file exists
     if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
-        echo -e "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one."
-        echo -e "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
-        echo -e "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
+        printf "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one.\n"
+        echo "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
+        printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
     else
         # Check if the key already exists
         if grep -q "^$KEY=" "$COLLECTOR_ENV_FILE"; then
-            echo -e "[INFO] $KEY already exists in $COLLECTOR_ENV_FILE. Updating it."
+            printf "[INFO] $KEY already exists in $COLLECTOR_ENV_FILE. Updating it.\n"
             sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$COLLECTOR_ENV_FILE"  # Update the existing value
-            echo -e "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE.\n\n"
+            printf "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE.\n\n"
         else
-            echo -e "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it."
-            echo -e "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair
-            echo -e "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
+            printf "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it.\n"
+            echo "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair with a preceeding newline
+            printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
         fi
     fi
 }
 
 check_docker_permissions() {
-    echo -e "[INFO] Checking Docker permissions for the current user ..."
+    printf "[INFO] Checking Docker permissions for the current user ...\n"
     if groups $USER | grep -q '\bdocker\b'; then
-        echo -e "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
+        printf "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
     else
-        echo -e "[INFO] User \`$USER\` does not have access to Docker without sudo."
-        echo -e "[INFO] Adding user \`$USER\` to the \`docker\` group ..."
+        printf "[INFO] User \`$USER\` does not have access to Docker without sudo.\n"
+        printf "[INFO] Adding user \`$USER\` to the \`docker\` group ...\n"
         sudo usermod -aG docker $USER
-        echo -e "[INFO] User \`$USER\` added to the \`docker\` group."
-        echo -e "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+        printf "[INFO] User \`$USER\` added to the \`docker\` group.\n"
+        printf "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
         exit 0
     fi
 }
@@ -218,61 +265,61 @@ check_docker_permissions
 install_jq
 
 # pull the latest image from public ECR
-echo -e "[INFO] Pulling the latest Docker image from Public ECR ..."
+printf "[INFO] Pulling the latest Docker image from Public ECR ...\n"
 docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
 # stop and remove the existing container if it exists
 if [ "$(docker ps -aq -f name=$CONTAINER_NAME)" ]; then
-    echo -e "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it ..."
+    printf "[INFO] A container with the name $CONTAINER_NAME already exists. Removing it ...\n"
     docker rm -f $CONTAINER_NAME
-    echo -e "[SUCCESS] Existing container removed.\n\n"
+    printf "[SUCCESS] Existing container removed.\n\n"
 else
-    echo -e "[INFO] No existing container with the name $CONTAINER_NAME found.\n\n"
+    printf "[INFO] No existing container with the name $CONTAINER_NAME found.\n\n"
 fi
 
 # download `config.yaml` file and handle backup if it already exists
 # the `config.yaml` changes depending on the type (worker vs keeper) 
-echo -e "[INFO] Checking for an existing \`config.yaml\` file ..."
+printf "[INFO] Checking for an existing \`config.yaml\` file ...\n"
 if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
-    echo -e "[INFO] \`config.yaml\` file found. Creating a backup ..."
+    printf "[INFO] \`config.yaml\` file found. Creating a backup ...\n"
     mv "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_BACKUP_FILE"
-    echo -e "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE."
+    printf "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE.\n"
 fi
 
-echo -e "[INFO] Downloading the latest \`config.yaml\` file ..."
+printf "[INFO] Downloading the latest \`config.yaml\` file ...\n"
 curl -fsSL -o "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
 if [ $? -ne 0 ]; then
-    echo -e "[ERROR] Failed to download the \`config.yaml\` file. Exiting.\n\n"
+    printf "[ERROR] Failed to download the \`config.yaml\` file. Exiting.\n\n"
     exit 1
 fi
-echo -e "[SUCCESS] \`config.yaml\` file downloaded successfully.\n\n"
+printf "[SUCCESS] \`config.yaml\` file downloaded successfully.\n\n"
 
 # download `.env`` file and handle backup if it already exists
-echo -e "[INFO] Checking for an existing \`.env\` file ..."
+printf "[INFO] Checking for an existing \`.env\` file ...\n"
 if [ -f "$COLLECTOR_ENV_FILE" ]; then
-    echo -e "[INFO] \`.env\` file found. Creating a backup ..."
+    printf "[INFO] \`.env\` file found. Creating a backup ...\n"
     mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
-    echo -e "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE."
+    printf "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE.\n"
 fi
 
-echo -e "[INFO] Downloading the latest \`.env\` file ..."
+printf "[INFO] Downloading the latest \`.env\` file ...\n"
 curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
 if [ $? -ne 0 ]; then
-    echo -e "[ERROR] Failed to download the \`.env\` file. Exiting.\n\n"
+    printf "[ERROR] Failed to download the \`.env\` file. Exiting.\n\n"
     exit 1
 fi
-echo -e "[SUCCESS] \`.env\` file downloaded successfully.\n\n"
+printf "[SUCCESS] \`.env\` file downloaded successfully.\n\n"
 
 # check private and public IPs
 if [ -z "$PRIVATE_IP" ] || [ -z "$PUBLIC_IP" ]; then
-    echo -e "[ERROR] Failed to retrieve private or public IPs. Exiting.\n"
+    printf "[ERROR] Failed to retrieve private or public IPs. Exiting.\n"
     exit 1
 fi
-echo -e "[INFO] Private IP: $PRIVATE_IP"
-echo -e "[INFO] Public IP: $PUBLIC_IP"
+printf "[INFO] Private IP: $PRIVATE_IP\n"
+printf "[INFO] Public IP: $PUBLIC_IP\n"
 
 # Fetch hostID from backend using POST
-echo -e "[INFO] Fetching hostID from the backend ..."
+printf "[INFO] Fetching hostID from the backend ...\n"
 HOST_ID_RESPONSE=$(curl -sf --max-time 5 -X POST \
   "$SERVICE_URL/api/v1/open-host-detail" \
   -H "accept: application/json" \
@@ -283,36 +330,48 @@ HOST_ID_RESPONSE=$(curl -sf --max-time 5 -X POST \
       }")
 
 if [ $? -ne 0 ]; then
-    echo -e "[ERROR] Failed to fetch hostID from the backend. Exiting."
+    printf "[ERROR] Failed to fetch hostID from the backend. Exiting.\n"
     exit 1
 fi
 
 HOST_ID=$(echo "$HOST_ID_RESPONSE" | jq -r '.hostId')
 if [ -z "$HOST_ID" ]; then
-    echo -e "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
+    printf "[ERROR] Failed to extract hostId from the backend response. Exiting.\n"
     exit 1
 fi
-echo -e "[INFO] hostID fetched: $HOST_ID"
+printf "[INFO] hostID fetched: $HOST_ID\n"
 
+# update env variables
 update_env_file "HOST_ID" "$HOST_ID"
 update_env_file "SERVICE_URL" "$SERVICE_URL"
+if [ "$DATABASE" = "clickhouse" ]; then
+    update_env_file "CLICKHOUSE_ENDPOINT" "$ENDPOINT"
+    update_env_file "CLICKHOUSE_USERNAME" "$USERNAME"
+    update_env_file "CLICKHOUSE_PASSWORD" "$PASSWORD"
+elif [ "$DATABASE" = "postgres" ]; then
+    update_env_file "POSTGRES_ENDPOINT" "$ENDPOINT"
+    update_env_file "POSTGRES_USERNAME" "$USERNAME"
+    update_env_file "POSTGRES_PASSWORD" "$PASSWORD"
+else
+    printf "[INFO] Nothing to update\n"
+fi
 
 # Run the new container
-echo -e "[INFO] Starting a new container with the latest image..."
+printf "[INFO] Starting a new container with the latest image...\n"
 docker run -d --name incerto-collector --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
-echo -e "                      Container is up and running.                      "
+printf "\n                      Container is up and running.                      \n"
 
-echo -e "\n************************************************************************"
-echo -e "                                                                        "
-echo -e "d888888b   d8b   db    .o88b.   d88888b   d8888b.   d888888b    .d88b.  "
-echo -e "   88      888o  88   d8P  Y8   88        88   8D    ~~88~~    .8P  Y8. "
-echo -e "   88      88V8o 88   8P        88ooooo   88oobY       88      88    88 "
-echo -e "   88      88 V8o88   8b        88~~~~~   88 8b        88      88    88 "
-echo -e "  .88.     88  V888   Y8b  d8   88.       88  88.      88       8b  d8  "
-echo -e "Y888888P   VP   V8P     Y88P    Y88888P   88   YD      YP        Y88P   "
-echo -e "                                                                        "
-echo -e "                      Incerto Technologies Pvt Ltd                      "
-echo -e "                           https://incerto.in                           "
-echo -e "                                                                        "
-echo -e "************************************************************************"
+printf "\n************************************************************************\n"
+printf "                                                                        \n"
+printf "d888888b   d8b   db    .o88b.   d88888b   d8888b.   d888888b    .d88b.  \n"
+printf "   88      888o  88   d8P  Y8   88        88   8D    ~~88~~    .8P  Y8. \n"
+printf "   88      88V8o 88   8P        88ooooo   88oobY       88      88    88 \n"
+printf "   88      88 V8o88   8b        88~~~~~   88 8b        88      88    88 \n"
+printf "  .88.     88  V888   Y8b  d8   88.       88  88.      88       8b  d8  \n"
+printf "Y888888P   VP   V8P     Y88P    Y88888P   88   YD      YP        Y88P   \n"
+printf "                                                                        \n"
+printf "                      Incerto Technologies Pvt Ltd                      \n"
+printf "                           https://incerto.in                           \n"
+printf "                                                                        \n"
+printf "************************************************************************\n"
