@@ -111,6 +111,9 @@ receivers:
 
 
     select:
+      - name: no_ttl
+        query: "select sum(rows) total_rows, database, table   from system.parts where length(move_ttl_info.expression) = 0 group by database, table having total_rows > 1000000 settings log_queries=0,log_profile_events=0"
+        includeQueryLog: false
       - name: mle
         query: "select sum(ProfileEvent_QueryMemoryLimitExceeded) count_mle from system.metric_log where event_time > now() - INTERVAL 20 Minutes and ProfileEvent_QueryMemoryLimitExceeded > 0 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
