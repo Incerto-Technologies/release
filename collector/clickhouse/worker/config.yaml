@@ -60,9 +60,6 @@ receivers:
         query: "WITH (SELECT quantileExact(0.9999)(read_bytes) FROM system.query_log WHERE event_time > (now() - toIntervalDay(30))) AS q SELECT event_time    , query_id, query, read_bytes FROM system.query_log WHERE (read_bytes > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
-      - name: load_average_high
-        query: "select * from (with (SELECT toInt32(regexpExtract(value, '\\((\\d+)\\)')) AS max_threads_int FROM system.settings WHERE name = 'max_threads' )  as cores select value/cores as average_core, event_time from  system.asynchronous_metric_log  where metric  = 'LoadAverage1' order by event_time desc  limit 1 )  where average_core > 1 settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
       - name: failed_mutation
         query: "SELECT * FROM system.mutations WHERE is_done = 0 AND latest_failed_part != '' AND ((now() - latest_fail_time) < (INTERVAL 1 MINUTE)) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
@@ -79,7 +76,7 @@ receivers:
         query: "select * from system.distributed_ddl_queue where status = '0' and query_create_time > now() - INTERVAL 10 minute settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: qps_9999
-        query: "with (select quantileExact(0.9999)(ProfileEvent_Query) from system.metric_log where event_time > now() -  INTERVAL 1 MONTH) as q  select  event_time,  ProfileEvent_Query from system.metric_log where ProfileEvent_Query > q and event_time > now() - INTERVAL  1  MINUTE settings log_queries=0,log_profile_events=0"
+        query: "with (select quantileExact(0.9999)(ProfileEvent_Query) from system.metric_log where event_time > now() -  INTERVAL 7 DAY) as q  select  event_time,  ProfileEvent_Query from system.metric_log where ProfileEvent_Query > q and event_time > now() - INTERVAL  1  MINUTE settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: keeper_outstanding_requests
         query: "select * from system.metrics where metric = 'KeeperOutstandingRequests' settings log_queries=0,log_profile_events=0"
@@ -112,7 +109,7 @@ receivers:
 
     select:
       - name: no_ttl
-        query: "select sum(rows) total_rows, database, table   from system.parts where length(move_ttl_info.expression) = 0 group by database, table having total_rows > 1000000 settings log_queries=0,log_profile_events=0"
+        query: "select database, table from system.tables where not create_table_query ILIKE '%TTL%' and total_rows > 1000000 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: mle
         query: "select sum(ProfileEvent_QueryMemoryLimitExceeded) count_mle from system.metric_log where event_time > now() - INTERVAL 20 Minutes and ProfileEvent_QueryMemoryLimitExceeded > 0 settings log_queries=0,log_profile_events=0"
