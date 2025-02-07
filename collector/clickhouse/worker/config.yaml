@@ -6,7 +6,7 @@ receivers:
     exists:
       - name: s3_failure
         # query: "select hostname from system.blob_storage_log where event_time > now () - INTERVAL 2 Minutes and error = '' limit 1"
-        query: "select hostname from system.blob_storage_log"
+        query: "select 1"
         includeQueryLog: false
 
       - name: free_disk_below_20_percent
