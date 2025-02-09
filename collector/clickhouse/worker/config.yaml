@@ -4,6 +4,10 @@ receivers:
     endpoint: ${env:CLICKHOUSE_ENDPOINT}
     username: ${env:CLICKHOUSE_USERNAME}
     exists:
+      - name: s3_failure
+        query: "select hostname from system.blob_storage_log where event_time > now () - INTERVAL 2 Minutes and error != '' limit 1"
+        includeQueryLog: false
+
       - name: free_disk_below_20_percent
         query: SELECT SUM(total_space) AS TotalSpace, SUM(free_space - keep_free_space) AS AvailableSpace FROM system.disks HAVING AvailableSpace < (0.2 * TotalSpace) settings log_queries=0,log_profile_events=0
         includeQueryLog: false
@@ -19,14 +23,14 @@ receivers:
       - name: high_keeper_latency
         query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperLatency) FROM system.metric_log where event_time > now() - INTERVAL 10 days) AS quantile SELECT event_time, ProfileEvent_KeeperLatency FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperLatency > quantile settings log_queries=0,log_profile_events=0
         includeQueryLog: false
-#
-#      - name: high_keeper_storage_lock_wait
-#        query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperStorageLockWaitMicroseconds) FROM system.metric_log where event_time > now() - INTERVAL 3 MONTHS) AS quantile SELECT event_time, ProfileEvent_KeeperStorageLockWaitMicroseconds FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperStorageLockWaitMicroseconds > quantile settings log_queries=0,log_profile_events=0
-#        includeQueryLog: false
-#
-#      - name: high_keeper_single_request_latency
-#        query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperTotalElapsedMicroseconds) FROM system.metric_log where event_time > now() - INTERVAL 3 MONTHS) AS quantile SELECT event_time, ProfileEvent_KeeperTotalElapsedMicroseconds FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperTotalElapsedMicroseconds > quantile settings log_queries=0,log_profile_events=0
-#        includeQueryLog: false
+      #
+      #      - name: high_keeper_storage_lock_wait
+      #        query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperStorageLockWaitMicroseconds) FROM system.metric_log where event_time > now() - INTERVAL 3 MONTHS) AS quantile SELECT event_time, ProfileEvent_KeeperStorageLockWaitMicroseconds FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperStorageLockWaitMicroseconds > quantile settings log_queries=0,log_profile_events=0
+      #        includeQueryLog: false
+      #
+      #      - name: high_keeper_single_request_latency
+      #        query: WITH (SELECT quantileExact(0.95)(ProfileEvent_KeeperTotalElapsedMicroseconds) FROM system.metric_log where event_time > now() - INTERVAL 3 MONTHS) AS quantile SELECT event_time, ProfileEvent_KeeperTotalElapsedMicroseconds FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_KeeperTotalElapsedMicroseconds > quantile settings log_queries=0,log_profile_events=0
+      #        includeQueryLog: false
 
       - name: zookeeper_user_exception
         query: WITH (SELECT ProfileEvent_ZooKeeperUserExceptions FROM system.metric_log WHERE event_time BETWEEN (now() - INTERVAL 2 MINUTE) AND (now() - INTERVAL 1 MINUTE) ORDER BY event_time LIMIT 1) as PreviousException SELECT event_time, ProfileEvent_ZooKeeperUserExceptions FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_ZooKeeperUserExceptions > PreviousException settings log_queries=0,log_profile_events=0
@@ -101,11 +105,11 @@ receivers:
         includeQueryLog: false
       - name: unreachable_host
         query: "with (select uniqExact(host_name) from system.clusters where cluster != 'default') as val1, (select uniqExact(hostName()) from clusterAllReplicas('clickhouse_cluster') settings skip_unavailable_shards = 1) as val2 select * from (select val1 == val2 as allConnected) where allConnected = 0 settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
+        includeQueryLog:
+          false
           #      - name: unreachable_host
           #        query: "SELECT 1 WHERE (SELECT uniqExact(host_name) FROM system.clusters WHERE cluster = 'clickhouse_cluster') != (SELECT uniqExact(hostName()) FROM clusterAllReplicas('clickhouse_cluster') SETTINGS skip_unavailable_shards = 1)"
           #        includeQueryLog: false
-
 
     select:
       - name: replica_health
@@ -129,7 +133,7 @@ receivers:
       - name: too_many_parts
         query: SELECT database, `table`, count(*) as DataCount FROM system.parts WHERE active = 1 AND database != 'system' GROUP BY database, `table`, active HAVING count(*) > (SELECT IF(toInt32OrZero(value) = 0, 3000, toInt32OrZero(value)) * 0.9 FROM system.merge_tree_settings WHERE name = 'parts_to_throw_insert') ORDER BY database ASC, `table` ASC settings log_queries=0,log_profile_events=0
         includeQueryLog: false
- 
+
       - name: query_running_since_minute
         query: "select query_id from system.processes where elapsed >= 60 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
@@ -150,7 +154,6 @@ receivers:
         query: "SELECT data.Macro as Macro, arrayStringConcat(groupArray(HostName), ',') as Hosts FROM (SELECT hostName() as HostName, arrayStringConcat(groupArray(CONCAT(macro, ':', substitution)), ',') as Macro FROM clusterAllReplicas('clickhouse_cluster', 'system.macros') GROUP BY hostName()) as data GROUP BY data.Macro HAVING COUNT(*) > 1 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 exporters:
-  
   otlphttp:
     endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}?domain=clickhouse
     metrics_endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}?domain=clickhouse
@@ -161,7 +164,6 @@ exporters:
     verbosity: detailed
 
 service:
-  
   pipelines:
     metrics:
       receivers: [incerto_clickhouse]
