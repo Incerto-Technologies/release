@@ -105,11 +105,7 @@ receivers:
         includeQueryLog: false
       - name: unreachable_host
         query: "with (select uniqExact(host_name) from system.clusters where cluster != 'default') as val1, (select uniqExact(hostName()) from clusterAllReplicas('clickhouse_cluster') settings skip_unavailable_shards = 1) as val2 select * from (select val1 == val2 as allConnected) where allConnected = 0 settings log_queries=0,log_profile_events=0"
-        includeQueryLog:
-          false
-          #      - name: unreachable_host
-          #        query: "SELECT 1 WHERE (SELECT uniqExact(host_name) FROM system.clusters WHERE cluster = 'clickhouse_cluster') != (SELECT uniqExact(hostName()) FROM clusterAllReplicas('clickhouse_cluster') SETTINGS skip_unavailable_shards = 1)"
-          #        includeQueryLog: false
+        includeQueryLog: false
 
     select:
       - name: replica_health
@@ -117,7 +113,7 @@ receivers:
         includeQueryLog: false
       - name: useless_tables
         query: "SELECT p.database, p.table FROM ( SELECT max(modification_time) AS mm, `table`, database FROM system.parts GROUP BY database, `table` HAVING mm < '2025-01-01') AS p left  JOIN ( SELECT DISTINCT arrayJoin(tables) AS full_table_name FROM system.query_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q ON concat(p.database, '.', p.table) = q.full_table_name having  full_table_name = '' settings log_queries=0,log_profile_events=0"        
-		includeQueryLog: false
+	    includeQueryLog: false
       - name: no_ttl
         query: "select database, table from system.tables where not create_table_query ILIKE '%TTL%' and total_rows > 1000000 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
