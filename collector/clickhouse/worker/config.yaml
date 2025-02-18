@@ -3,7 +3,7 @@ receivers:
     collection_interval: 60s
     endpoint: ${env:CLICKHOUSE_ENDPOINT}
     username: ${env:CLICKHOUSE_USERNAME}
-	password: $(env:CLICKHOUSE_PASSWORD}
+    password: $(env:CLICKHOUSE_PASSWORD}
     exists:
       - name: s3_failure
         query: "select hostname from system.blob_storage_log where event_time > now () - INTERVAL 2 Minutes and error != '' limit 1"
