@@ -113,7 +113,7 @@ receivers:
         query: "SELECT database, table, is_readonly, is_session_expired, future_parts > 20 future_parts_problem, parts_to_check > 10 check_problem, queue_size > 20 queue_problem, inserts_in_queue > 10 insert_query_problem, merges_in_queue, log_max_index - log_pointer > 10 as log_diff, total_replicas < 2 replica_problem, active_replicas < total_replicas non_active FROM system.replicas WHERE is_readonly OR is_session_expired OR future_parts > 20 OR parts_to_check > 10 OR queue_size > 20 OR inserts_in_queue > 10 OR log_max_index - log_pointer > 10 OR total_replicas < 2 OR active_replicas < total_replicas settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: useless_tables
-        query: "SELECT p.database, p.table FROM ( SELECT max(modification_time) AS mm, `table`, database FROM system.parts GROUP BY database, `table` HAVING mm < '2025-01-01') AS p left  JOIN ( SELECT DISTINCT arrayJoin(tables) AS full_table_name FROM system.query_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q ON concat(p.database, '.', p.table) = q.full_table_name having  full_table_name = '' settings log_queries=0,log_profile_events=0"        
+        query: "SELECT p.database, p.table FROM ( SELECT max(modification_time) AS mm, `table`, database FROM system.parts GROUP BY database, `table` HAVING mm < '2025-01-01') AS p left  JOIN ( SELECT DISTINCT arrayJoin(tables) AS full_table_name FROM system.query_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q ON concat(p.database, '.', p.table) = q.full_table_name having  full_table_name = '' settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: no_ttl
         query: "select database, table from system.tables where not create_table_query ILIKE '%TTL%' and total_rows > 1000000 settings log_queries=0,log_profile_events=0"
@@ -150,6 +150,30 @@ receivers:
       - name: duplicate_macros
         query: "SELECT data.Macro as Macro, arrayStringConcat(groupArray(HostName), ',') as Hosts FROM (SELECT hostName() as HostName, arrayStringConcat(groupArray(CONCAT(macro, ':', substitution)), ',') as Macro FROM clusterAllReplicas('clickhouse_cluster', 'system.macros') GROUP BY hostName()) as data GROUP BY data.Macro HAVING COUNT(*) > 1 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
+
+  hostmetrics:
+    root_path: /
+    collection_interval: 5s
+    scrapers:
+      load:
+        metrics:
+          system.cpu.load_average.15m:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+          system.filesystem.usage:
+            enabled: true
+
 exporters:
   otlphttp:
     endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}?domain=clickhouse
@@ -163,5 +187,5 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [incerto_clickhouse]
+      receivers: [hostmetrics, incerto_clickhouse]
       exporters: [debug, otlphttp]

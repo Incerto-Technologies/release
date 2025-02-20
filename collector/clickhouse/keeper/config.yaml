@@ -8,6 +8,29 @@ receivers:
           - mntr
           - srvr
 
+  hostmetrics:
+    root_path: /
+    collection_interval: 5s
+    scrapers:
+      load:
+        metrics:
+          system.cpu.load_average.15m:
+            enabled: true
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+          system.filesystem.usage:
+            enabled: true
+
 exporters:
   
   otlphttp:
@@ -23,5 +46,5 @@ service:
   
   pipelines:
     metrics:
-      receivers: [incerto_clickhouse]
+      receivers: [hostmetrics, incerto_clickhouse]
       exporters: [debug, otlphttp]

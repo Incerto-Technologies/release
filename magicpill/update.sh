@@ -368,7 +368,15 @@ fi
 
 # Run the new container
 printf "[INFO] Starting a new container with the latest image...\n"
-docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
+docker run -d --name incerto-collector \
+    --restart=always \
+    --env-file $(pwd)/.env \
+    --network host \
+    -v $(pwd)/config.yaml:/config.yaml \
+    -v /proc:/hostfs/proc \
+    -v /:/hostfs \
+    -v /var/run/docker.sock:/var/run/docker.sock:rw \
+    $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
 
 printf "\n                      Container is up and running.                      \n"
 
