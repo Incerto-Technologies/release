@@ -153,7 +153,7 @@ receivers:
 
   hostmetrics:
     root_path: /
-    collection_interval: 5s
+    collection_interval: 60s
     scrapers:
       load:
         metrics:
