@@ -68,9 +68,6 @@ receivers:
       - name: failed_mutation
         query: "SELECT * FROM system.mutations WHERE is_done = 0 AND latest_failed_part != '' AND ((now() - latest_fail_time) < (INTERVAL 1 MINUTE)) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
-      - name: error_in_parts
-        query: "SELECT event_time, event_type, `table`, error, errorCodeToName(error) AS error_code FROM system.part_log WHERE event_time >= (NOW() - (INTERVAL 1 MINUTE)) AND error > 0 settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
       - name: queries_running_10
         query: "select * from (select count(*) as value from system.processes) where value > 10 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
@@ -85,9 +82,6 @@ receivers:
         includeQueryLog: false
       - name: keeper_outstanding_requests
         query: "select * from system.metrics where metric = 'KeeperOutstandingRequests' settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-      - name: replication_issues
-        query: "select * from system.replication_queue where last_exception_time > now() - INTERVAL 10 MINUTE settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: query_log_errors
         query: "select query_id from system.query_log where type > 2 and event_time > now() - INTERVAL 10 Minute settings log_queries=0,log_profile_events=0"
@@ -109,6 +103,18 @@ receivers:
         includeQueryLog: false
 
     select:
+      - name: replication_issues
+        query: "SELECT `database`, `table`, replica_name, type as task_type, position, required_quorum, is_detach, num_tries, last_exception, last_exception_time, last_attempt_time, merge_type FROM system.replication_queue WHERE last_exception_time > now() - INTERVAL 10 MINUTE SETTINGS log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: error_in_parts
+        query: "SELECT query_id, event_type, merge_algorithm, event_time, `database`, `table`, part_name, part_type, disk_name, `rows`, error, exception, errorCodeToName(error) AS error_code FROM system.part_log WHERE event_time >= (NOW() - (INTERVAL 1 MINUTE)) AND error > 0 SETTINGS log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: mle_value
+        query: "SELECT event_time, ProfileEvent_QueryMemoryLimitExceeded FROM system.metric_log WHERE event_time > now() - INTERVAL 20 Minutes AND ProfileEvent_QueryMemoryLimitExceeded > 0 SETTINGS log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: mle_query
+        query: "SELECT type as event_type, event_time, written_rows, memory_usage, current_database, query, query_kind, exception_code, exception, stack_trace, query_id, databases, tables FROM system.query_log WHERE exception_code = 241 AND event_time > now() - INTERVAL 10 Minutes SETTINGS log_queries=0,log_profile_events=0"
+        includeQueryLog: false
       - name: replica_health
         query: "SELECT database, table, is_readonly, is_session_expired, future_parts > 20 future_parts_problem, parts_to_check > 10 check_problem, queue_size > 20 queue_problem, inserts_in_queue > 10 insert_query_problem, merges_in_queue, log_max_index - log_pointer > 10 as log_diff, total_replicas < 2 replica_problem, active_replicas < total_replicas non_active FROM system.replicas WHERE is_readonly OR is_session_expired OR future_parts > 20 OR parts_to_check > 10 OR queue_size > 20 OR inserts_in_queue > 10 OR log_max_index - log_pointer > 10 OR total_replicas < 2 OR active_replicas < total_replicas settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
@@ -120,9 +126,6 @@ receivers:
         includeQueryLog: false
       - name: mle
         query: "select sum(ProfileEvent_QueryMemoryLimitExceeded) count_mle from system.metric_log where event_time > now() - INTERVAL 20 Minutes and ProfileEvent_QueryMemoryLimitExceeded > 0 settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-      - name: mle_query
-        query: "select distinct query_kind from system.query_log where exception_code = 241 and event_time > now() - INTERVAL 10 Minutes settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: insert_exception
         query: "SELECT type, query_duration_ms, current_database, query, exception_code, exception, query_id FROM system.query_log WHERE (type = '4') AND (query_kind = 'Insert') AND (event_time > (now() - toIntervalMinute(2))) settings log_queries=0,log_profile_events=0"
