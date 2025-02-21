@@ -3,24 +3,25 @@
 set -e  # exit immediately if a command exits with a non-zero status
 
 # AWS credentials
+AWS_ACCOUNT_ID="434499855633"
+AWS_REGION="ap-south-1"
 AWS_ACCESS_KEY_ID="none"
 AWS_SECRET_ACCESS_KEY="none"
-AWS_REGION="ap-south-1"
-
-# registry details
-ECR_URL="none"
 
 # frontend service
+ECR_URL_FRONTEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto/frontend"
 IMAGE_NAME_FRONTEND="frontend"
 IMAGE_TAG_FRONTEND="latest"
 CONTAINER_NAME_FRONTEND="incerto-frontend"
 
 # backend service
+ECR_URL_BACKEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto/backend"
 IMAGE_NAME_BACKEND="backend"
 IMAGE_TAG_BACKEND="latest"
 CONTAINER_NAME_BACKEND="incerto-backend"
 
 # ai service
+ECR_URL_AI="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto/ai"
 IMAGE_NAME_AI="ai"
 IMAGE_TAG_AI="latest"
 CONTAINER_NAME_AI="incerto-ai"
@@ -35,13 +36,13 @@ CONTAINER_NAME_AI="incerto-ai"
 # COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 
 # get url for 
-SERVICE_URL="none"
+# SERVICE_URL="none"
 # run collector for `worker` or `keeper`
-DATABASE="none"
-TYPE="none"
-ENDPOINT="none"
-USERNAME=""
-PASSWORD=""
+# DATABASE="none"
+# TYPE="none"
+# ENDPOINT="none"
+# USERNAME=""
+# PASSWORD=""
 
 while [ $# -gt 0 ]; do
     case $1 in
@@ -76,26 +77,26 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-printf "\n[INFO] Proceeding with using \n\n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
+printf "\n[INFO] Proceeding with using \n\n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION\n\n"
 
 # Validate database and type combinations  
 # Determine the correct config.yaml URL based on the type
-if [ "$DATABASE" = "clickhouse" ]; then
-    if [ "$TYPE" != "worker" ] && [ "$TYPE" != "keeper" ]; then
-        printf "[ERROR] Invalid type for clickhouse. Allowed values are 'worker' or 'keeper'.\n"
-        exit 1
-    fi
-    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
-elif [ "$DATABASE" = "postgres" ]; then
-    if [ "$TYPE" != "master" ] && [ "$TYPE" != "replica" ]; then
-        printf "[ERROR] Invalid type for postgres. Allowed values are 'master' or 'replica'.\n"
-        exit 1
-    fi
-    COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
-else
-    printf "[ERROR] Unsupported database type. Allowed values are 'clickhouse' or 'postgres'.\n"
-    exit 1
-fi
+# if [ "$DATABASE" = "clickhouse" ]; then
+#     if [ "$TYPE" != "worker" ] && [ "$TYPE" != "keeper" ]; then
+#         printf "[ERROR] Invalid type for clickhouse. Allowed values are 'worker' or 'keeper'.\n"
+#         exit 1
+#     fi
+#     COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
+# elif [ "$DATABASE" = "postgres" ]; then
+#     if [ "$TYPE" != "master" ] && [ "$TYPE" != "replica" ]; then
+#         printf "[ERROR] Invalid type for postgres. Allowed values are 'master' or 'replica'.\n"
+#         exit 1
+#     fi
+#     COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
+# else
+#     printf "[ERROR] Unsupported database type. Allowed values are 'clickhouse' or 'postgres'.\n"
+#     exit 1
+# fi
 
 # function to install Docker on Ubuntu
 install_docker_ubuntu() {
@@ -115,12 +116,11 @@ install_docker_ubuntu() {
 }
 
 # Function to check and install AWS CLI
-install_awscli() {
+install_aws_cli() {
     if command -v aws &> /dev/null; then
         printf "[INFO] AWS CLI is already installed on this machine.\n\n"
         return 0
     fi
-
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
@@ -140,9 +140,6 @@ install_awscli() {
         exit 1
     fi
 }
-
-# Call the function
-install_awscli
 
 # function to install Docker on RHEL
 install_docker_rhel() {
@@ -256,19 +253,22 @@ check_docker_permissions() {
 
 # setup AWS ECR
 setup_ecr() {
-    # pull the latest image from public ECR
-    printf "[INFO] Pulling the latest Docker image from Public ECR ...\n"
-    docker pull $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
-
+    # configure AWS credentials
     aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
     aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
     aws configure set region $AWS_REGION
-
+    # authenticate Docker with ECR
+    if aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"; then
+        printf "[INFO] Successfully authenticated with AWS ECR.\n"
+    else
+        printf "[ERROR] Failed to authenticate with AWS ECR. Exiting.\n"
+        exit 1
+    fi
 }
 
 # setup and run Frontend service
 run_frontend() {
-    # Run the new container
+    # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
     docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
     printf "\n                      Frontend service is up and running.                      \n"
@@ -276,20 +276,54 @@ run_frontend() {
 
 # setup and run Backend service
 run_backend() {
-    # Run the new container
+    REQUIRED_DIRS=(
+        "$(pwd)/backend/migration"
+        "$(pwd)/backend/config"
+        "$(pwd)/backend/log"
+        "$(pwd)/backend/resource"
+    )
+    REQUIRED_FILES=(
+        "$(pwd)/backend/.env"
+    )
+    # Ensure required directories exist
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if [ ! -d "$dir" ]; then
+            printf "[INFO] Creating missing directory: $dir\n"
+            mkdir -p "$dir"
+        fi
+    done
+    # Ensure required files exist
+    for file in "${REQUIRED_FILES[@]}"; do
+        if [ ! -f "$file" ]; then
+            printf "[ERROR] Required file missing: $file\n"
+            exit 1
+        fi
+    done
+    # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
-    docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
+    docker run -d \
+        --name $CONTAINER_NAME_BACKEND \
+        --restart=always \
+        --env-file $(pwd)/backend/.env \
+        --network host \
+        -v $(pwd)/backend/migration:/app/migration:rw \
+        -v $(pwd)/backend/config:/app/config:rw \
+        -v $(pwd)/backend/log:/app/log:rw \
+        -v $(pwd)/backend/resource:/app/resource:rw \
+        $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n"
 }
 
 # setup and run AI service
 run_ai() {
-    # Run the new container
+    # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
     docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
     printf "\n                      AI service is up and running.                      \n"
 }
 
+
+install_aws_cli
 
 install_docker
  
@@ -297,11 +331,11 @@ check_docker_permissions
 
 setup_ecr
 
-run_frontend
+# run_frontend
 
 run_backend
 
-run_ai
+# run_ai
 
 # update env variables
 # update_env_file "HOST_ID" "$HOST_ID"
