@@ -74,17 +74,11 @@ receivers:
       - name: queries_running_20
         query: "select * from (select count(*) as value from system.processes) where value > 20 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
-      - name: distributed_queries_inactive
-        query: "select * from system.distributed_ddl_queue where status = '0' and query_create_time > now() - INTERVAL 10 minute settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
       - name: qps_9999
         query: "with (select quantileExact(0.9999)(ProfileEvent_Query) from system.metric_log where event_time > now() -  INTERVAL 7 DAY) as q  select  event_time,  ProfileEvent_Query from system.metric_log where ProfileEvent_Query > q and event_time > now() - INTERVAL  1  MINUTE settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: keeper_outstanding_requests
         query: "select * from system.metrics where metric = 'KeeperOutstandingRequests' settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-      - name: query_log_errors
-        query: "select query_id from system.query_log where type > 2 and event_time > now() - INTERVAL 10 Minute settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: data_change_queries
         query: "SELECT query_id, query FROM system.query_log WHERE (event_time >= (now() - toIntervalMinute(10))) AND (type = 'QueryFinish') AND ((query ILIKE 'DROP%') OR (query ILIKE 'SYSTEM%') OR (query ILIKE 'ALTER%') OR (query ILIKE 'truncate%')) settings log_queries=0,log_profile_events=0"
@@ -114,6 +108,12 @@ receivers:
         includeQueryLog: false
       - name: mle_query
         query: "SELECT type as event_type, event_time, written_rows, memory_usage, current_database, query, query_kind, exception_code, exception, stack_trace, query_id, databases, tables FROM system.query_log WHERE exception_code = 241 AND event_time > now() - INTERVAL 10 Minutes SETTINGS log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: distributed_queries_inactive
+        query: "SELECT entry, cluster, query, query_create_time, status, exception_code, exception_text FROM system.distributed_ddl_queue WHERE status = '0' AND query_create_time > now() - INTERVAL 10 minute SETTINGS log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: query_log_errors
+        query: "select type as event_type, event_time, written_rows, memory_usage, current_database, query, query_kind, exception_code, exception, stack_trace, query_id, databases, tables  from system.query_log where type > 2 and event_time > now() - INTERVAL 10 Minute SETTINGS log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: replica_health
         query: "SELECT database, table, is_readonly, is_session_expired, future_parts > 20 future_parts_problem, parts_to_check > 10 check_problem, queue_size > 20 queue_problem, inserts_in_queue > 10 insert_query_problem, merges_in_queue, log_max_index - log_pointer > 10 as log_diff, total_replicas < 2 replica_problem, active_replicas < total_replicas non_active FROM system.replicas WHERE is_readonly OR is_session_expired OR future_parts > 20 OR parts_to_check > 10 OR queue_size > 20 OR inserts_in_queue > 10 OR log_max_index - log_pointer > 10 OR total_replicas < 2 OR active_replicas < total_replicas settings log_queries=0,log_profile_events=0"
