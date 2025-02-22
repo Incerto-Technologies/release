@@ -266,6 +266,11 @@ setup_ecr() {
     fi
 }
 
+setup_base_dir() {
+    cd "$HOME" || { printf "[ERROR] Failed to cd to home directory"; exit 1; }
+    mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
+}
+
 # setup and run Frontend service
 run_frontend() {
     # run the new container
@@ -330,6 +335,8 @@ install_docker
 check_docker_permissions
 
 setup_ecr
+
+setup_base_dir
 
 # run_frontend
 
