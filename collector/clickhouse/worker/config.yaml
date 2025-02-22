@@ -158,6 +158,12 @@ receivers:
     root_path: /
     collection_interval: 60s
     scrapers:
+      disk:
+        metrics:
+          system.disk.weighted_io_time:
+            enabled: false
+          system.disk.operations:
+            enabled: false
       load:
         metrics:
           system.cpu.load_average.15m:
@@ -170,13 +176,35 @@ receivers:
         metrics:
           system.cpu.utilization:
             enabled: true
+          system.cpu.time:
+            enabled: false
       filesystem:
         metrics:
+          system.filesystem.inodes.usage:
+            enabled: false
           system.filesystem.utilization:
             enabled: true
           system.filesystem.usage:
             enabled: true
-
+#      load:
+#        metrics:
+#          system.cpu.load_average.15m:
+#            enabled: true
+#      memory:
+#        metrics:
+#          system.memory.utilization:
+#            enabled: true
+#      cpu:
+#        metrics:
+#          system.cpu.utilization:
+#            enabled: true
+#      filesystem:
+#        metrics:
+#          system.filesystem.utilization:
+#            enabled: true
+#          system.filesystem.usage:
+#            enabled: true
+#
 exporters:
   otlphttp:
     endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:HOST_ID}?domain=clickhouse
