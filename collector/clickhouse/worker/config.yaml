@@ -3,7 +3,6 @@ receivers:
     collection_interval: 60s
     endpoint: ${env:CLICKHOUSE_ENDPOINT}
     username: ${env:CLICKHOUSE_USERNAME}
-    password: $(env:CLICKHOUSE_PASSWORD}
     exists:
       - name: s3_failure
         query: "select hostname from system.blob_storage_log where event_time > now () - INTERVAL 2 Minutes and error != '' limit 1"
@@ -58,11 +57,11 @@ receivers:
         includeQueryLog: false
 
       - name: query_high_execution_time
-        query: "WITH (SELECT quantileExact(0.9999)(query_duration_ms) FROM system.query_log WHERE event_time > (now() - toIntervalDay(30))) AS q SELECT event_time, query_id, query, query_duration_ms FROM system.query_log WHERE (query_duration_ms > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
+        query: "WITH (SELECT quantileExact(0.9999)(query_duration_ms) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time, query_id, query, query_duration_ms FROM system.query_log WHERE (query_duration_ms > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: query_high_read_bytes
-        query: "WITH (SELECT quantileExact(0.9999)(read_bytes) FROM system.query_log WHERE event_time > (now() - toIntervalDay(30))) AS q SELECT event_time    , query_id, query, read_bytes FROM system.query_log WHERE (read_bytes > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
+        query: "WITH (SELECT quantileExact(0.9999)(read_bytes) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time    , query_id, query, read_bytes FROM system.query_log WHERE (read_bytes > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: failed_mutation
