@@ -400,7 +400,7 @@ run_backend() {
         printf "[INFO] No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
     fi
     # run the new container
-    printf "[INFO] Starting a new container with the latest image ...\n\n"
+    printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
         --restart=always \
