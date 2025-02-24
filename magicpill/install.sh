@@ -351,12 +351,11 @@ run_frontend() {
         printf "[INFO] No existing container with the name $CONTAINER_NAME_FRONTEND found.\n"
     fi
     # run the new container
-    printf "[INFO] Starting a new container with the latest image...\n"
+    printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
         --name $CONTAINER_NAME_FRONTEND \
         --restart=always \
         --network host \
-        # --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
         -v $HOME/certs:/etc/nginx/certs:ro \
         $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
@@ -397,7 +396,7 @@ run_backend() {
         printf "[INFO] No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
     fi
     # run the new container
-    printf "[INFO] Starting a new container with the latest image...\n"
+    printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
         --restart=always \
@@ -419,6 +418,7 @@ run_ai() {
     printf "\n                      AI service is up and running.                      \n"
 }
 
+cd $HOME
 
 install_aws_cli
 
