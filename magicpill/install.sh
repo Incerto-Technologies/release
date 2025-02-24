@@ -357,6 +357,7 @@ run_frontend() {
         --restart=always \
         --network host \
         -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
+        -v $(pwd)/frontend/custom.conf:/etc/nginx/conf.d/custom.conf:rw \
         -v $HOME/certs:/etc/nginx/certs:ro \
         $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
     printf "\n                      Frontend service is up and running.                      \n"
