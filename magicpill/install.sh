@@ -424,8 +424,6 @@ run_ai() {
     printf "\n                      AI service is up and running.                      \n\n"
 }
 
-cd $HOME
-
 install_aws_cli
 
 install_docker
