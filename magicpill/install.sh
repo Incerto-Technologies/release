@@ -357,6 +357,7 @@ run_frontend() {
     printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
         --name $CONTAINER_NAME_FRONTEND \
+        --pull=always \
         --restart=always \
         --network host \
         --env-file $(pwd)/frontend/.env \
@@ -403,6 +404,7 @@ run_backend() {
     printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
+        --pull=always \
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
