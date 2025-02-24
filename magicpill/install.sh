@@ -278,11 +278,13 @@ setup_ecr() {
     fi
 }
 
+# setup base directories
 setup_base_dir() {
     cd "$HOME" || { printf "[ERROR] Failed to cd to home directory"; exit 1; }
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
 }
 
+# setup certificates
 setup_certs() {
     CERT_DIR="$HOME/certs"
     mkdir -p "$CERT_DIR"
