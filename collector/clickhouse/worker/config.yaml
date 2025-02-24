@@ -100,7 +100,7 @@ receivers:
         query: "SELECT `database`, `table`, replica_name, type as task_type, position, required_quorum, is_detach, num_tries, last_exception, last_exception_time, last_attempt_time, merge_type FROM system.replication_queue WHERE last_exception_time > now() - INTERVAL 10 MINUTE SETTINGS log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: error_in_parts
-        query: "SELECT query_id, event_type, merge_algorithm, event_time, `database`, `table`, part_name, part_type, disk_name, `rows`, error, exception, errorCodeToName(error) AS error_code FROM system.part_log WHERE event_time >= (NOW() - (INTERVAL 1 MINUTE)) AND error > 0 SETTINGS log_queries=0,log_profile_events=0"
+        query: "SELECT query_id, event_type, merge_algorithm, event_time, `database`, `table`, part_name, part_type, disk_name, `rows`, error, exception, errorCodeToName(error) AS error_code FROM system.part_log WHERE event_time >= (NOW() - (INTERVAL 1 MINUTE)) AND error > 0 and error != 'INSERT_WAS_DEDUPLICATED' SETTINGS log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: mle_value
         query: "SELECT event_time, ProfileEvent_QueryMemoryLimitExceeded FROM system.metric_log WHERE event_time > now() - INTERVAL 20 Minutes AND ProfileEvent_QueryMemoryLimitExceeded > 0 SETTINGS log_queries=0,log_profile_events=0"
