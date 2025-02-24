@@ -26,6 +26,9 @@ IMAGE_NAME_AI="ai"
 IMAGE_TAG_AI="latest"
 CONTAINER_NAME_AI="incerto-ai"
 
+# customer information
+DOMAIN="example.com"
+
 # COLLECTOR_CONFIG_URL="none"
 # COLLECTOR_CONFIG_FILE="config.yaml"
 # COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
@@ -70,6 +73,14 @@ while [ $# -gt 0 ]; do
             fi
             shift 2
             ;;
+        --domain)
+            DOMAIN="$2"
+            if [ -z "$DOMAIN" ]; then
+                printf "[ERROR] Missing value for --domain. Please provide a valid domain value like utility.incerto.in.\n"
+                exit 1
+            fi
+            shift 2
+            ;;
         *)
             printf "[ERROR] Unknown option: $1\n"
             exit 1
@@ -77,7 +88,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-printf "\n[INFO] Proceeding with using \n\n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION\n\n"
+printf "\n[INFO] Proceeding with using \n\n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    domain: $DOMAIN\n\n"
 
 # Validate database and type combinations  
 # Determine the correct config.yaml URL based on the type
@@ -212,26 +223,27 @@ install_docker() {
 
 # update env file
 update_env_file() {
-    KEY="$1"   # The key to update or add (e.g., "HOST_ID")
-    VALUE="$2" # The value to set for the key
+    FILE="$1"  # The file to be updated (e.g., .env)
+    KEY="$2"   # The key to update or add (e.g., "HOST_ID")
+    VALUE="$3" # The value to set for the key
 
-    printf "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE\n"
-
-    # Check if the .env file exists
-    if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
-        printf "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one.\n"
-        echo "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
-        printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
+    printf "[INFO] Updating $FILE with $KEY=$VALUE\n"
+    
+    # Check if the file exists
+    if [ ! -f "$FILE" ]; then
+        printf "[INFO] $FILE does not exist. Creating a new one.\n"
+        echo "$KEY=$VALUE" > "$FILE"
+        printf "[SUCCESS] $KEY added to $FILE.\n"
     else
         # Check if the key already exists
-        if grep -q "^$KEY=" "$COLLECTOR_ENV_FILE"; then
-            printf "[INFO] $KEY already exists in $COLLECTOR_ENV_FILE. Updating it.\n"
-            sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$COLLECTOR_ENV_FILE"  # Update the existing value
-            printf "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE.\n\n"
+        if grep -q "^$KEY=" "$FILE"; then
+            printf "[INFO] $KEY already exists in $FILE. Updating it.\n"
+            sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$FILE"  # Update the existing value
+            printf "[SUCCESS] $KEY updated in $FILE.\n"
         else
-            printf "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it.\n"
-            echo "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair with a preceeding newline
-            printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
+            printf "[INFO] $KEY not found in $FILE. Adding it.\n"
+            echo "$KEY=$VALUE" >> "$FILE"  # Append the new key-value pair with a preceeding newline
+            printf "[SUCCESS] $KEY added to $FILE.\n"
         fi
     fi
 }
@@ -259,24 +271,102 @@ setup_ecr() {
     aws configure set region $AWS_REGION
     # authenticate Docker with ECR
     if aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"; then
-        printf "[INFO] Successfully authenticated with AWS ECR.\n"
+        printf "[INFO] Successfully authenticated with AWS ECR.\n\n"
     else
-        printf "[ERROR] Failed to authenticate with AWS ECR. Exiting.\n"
+        printf "[ERROR] Failed to authenticate with AWS ECR. Exiting.\n\n"
         exit 1
     fi
 }
 
+# setup base directories
 setup_base_dir() {
     cd "$HOME" || { printf "[ERROR] Failed to cd to home directory"; exit 1; }
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
 }
 
+# setup certificates
+setup_certs() {
+    CERT_DIR="$HOME/certs"
+    mkdir -p "$CERT_DIR"
+
+    # generate Private Key
+    if [ ! -f "$CERT_DIR/privkey.pem" ]; then
+        printf "[INFO] Generating private key...\n"
+        openssl genrsa -out "$CERT_DIR/privkey.pem" 2048
+    else
+        printf "[INFO] Private key already exists, skipping.\n"
+    fi
+    # generate Certificate Signing Request (CSR)
+    if [ ! -f "$CERT_DIR/cert.csr" ]; then
+        printf "[INFO] Generating Certificate Signing Request (CSR)...\n"
+        openssl req -new -key "$CERT_DIR/privkey.pem" -out "$CERT_DIR/cert.csr" -subj "/CN=$DOMAIN/O=Incerto/C=IN"
+    else
+        printf "[INFO] CSR already exists, skipping.\n"
+    fi
+    # generate Self-Signed Certificate
+    if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
+        printf "[INFO] Generating self-signed SSL certificate...\n"
+        openssl x509 -req -days 1825 -in "$CERT_DIR/cert.csr" -signkey "$CERT_DIR/privkey.pem" -out "$CERT_DIR/fullchain.pem"
+    else
+        printf "[INFO] SSL certificate already exists, skipping.\n"
+    fi
+
+    printf "[INFO] All certificates and keys are stored in $CERT_DIR \n\n"
+}
+
 # setup and run Frontend service
 run_frontend() {
+    REQUIRED_DIRS=(
+        "$(pwd)/frontend"
+    )
+    REQUIRED_FILES=(
+        "$(pwd)/frontend/config.json"
+    )
+    # ensure required directories exist
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if [ ! -d "$dir" ]; then
+            printf "[INFO] Creating missing directory: $dir\n"
+            mkdir -p "$dir"
+        fi
+    done
+    # ensure required files exist
+    for file in "${REQUIRED_FILES[@]}"; do
+        if [ ! -f "$file" ]; then
+            printf "[ERROR] Required file missing: $file\n"
+            exit 1
+        fi
+    done
+    # force creation of custom.conf file
+    CUSTOM_CONF_FILE="$(pwd)/frontend/.env"
+    if [ ! -f "$CUSTOM_CONF_FILE" ]; then
+        touch "$CUSTOM_CONF_FILE"
+        chmod 644 "$CUSTOM_CONF_FILE"
+        printf "File created: $CUSTOM_CONF_FILE\n"
+    else
+        printf "File already exists: $CUSTOM_CONF_FILE\n"
+    fi
+    # update env variables
+    update_env_file "$CUSTOM_CONF_FILE" "DOMAIN" "$DOMAIN"
+    # stop and remove the existing container if it exists
+    if [ "$(docker ps -aq -f name=$CONTAINER_NAME_FRONTEND)" ]; then
+        printf "[INFO] A container with the name $CONTAINER_NAME_FRONTEND already exists. Removing it ...\n"
+        docker rm -f $CONTAINER_NAME_FRONTEND
+        printf "[SUCCESS] Existing container removed.\n"
+    else
+        printf "[INFO] No existing container with the name $CONTAINER_NAME_FRONTEND found.\n"
+    fi
     # run the new container
-    printf "[INFO] Starting a new container with the latest image...\n"
-    docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
-    printf "\n                      Frontend service is up and running.                      \n"
+    printf "[INFO] Starting a new container with the latest image ...\n"
+    docker run -d \
+        --name $CONTAINER_NAME_FRONTEND \
+        --pull=always \
+        --restart=always \
+        --network host \
+        --env-file $(pwd)/frontend/.env \
+        -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
+        -v $HOME/certs:/etc/nginx/certs:ro \
+        $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
+    printf "\n                      Frontend service is up and running.                      \n\n"
 }
 
 # setup and run Backend service
@@ -290,27 +380,36 @@ run_backend() {
     REQUIRED_FILES=(
         "$(pwd)/backend/.env"
     )
-    # Ensure required directories exist
+    # ensure required directories exist
     for dir in "${REQUIRED_DIRS[@]}"; do
         if [ ! -d "$dir" ]; then
             printf "[INFO] Creating missing directory: $dir\n"
             mkdir -p "$dir"
         fi
     done
-    # Ensure required files exist
+    # ensure required files exist
     for file in "${REQUIRED_FILES[@]}"; do
         if [ ! -f "$file" ]; then
             printf "[ERROR] Required file missing: $file\n"
             exit 1
         fi
     done
+    # stop and remove the existing container if it exists
+    if [ "$(docker ps -aq -f name=$CONTAINER_NAME_BACKEND)" ]; then
+        printf "[INFO] A container with the name $CONTAINER_NAME_BACKEND already exists. Removing it ...\n"
+        docker rm -f $CONTAINER_NAME_BACKEND
+        printf "[SUCCESS] Existing container removed.\n"
+    else
+        printf "[INFO] No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
+    fi
     # run the new container
-    printf "[INFO] Starting a new container with the latest image...\n"
+    printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
+        --pull=always \
         --restart=always \
-        --env-file $(pwd)/backend/.env \
         --network host \
+        --env-file $(pwd)/backend/.env \
         -v $(pwd)/backend/migration:/app/migration:rw \
         -v $(pwd)/backend/config:/app/config:rw \
         -v $(pwd)/backend/log:/app/log:rw \
@@ -324,9 +423,8 @@ run_ai() {
     # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
     docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
-    printf "\n                      AI service is up and running.                      \n"
+    printf "\n                      AI service is up and running.                      \n\n"
 }
-
 
 install_aws_cli
 
@@ -338,7 +436,9 @@ setup_ecr
 
 setup_base_dir
 
-# run_frontend
+setup_certs
+
+run_frontend
 
 run_backend
 
