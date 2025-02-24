@@ -223,26 +223,27 @@ install_docker() {
 
 # update env file
 update_env_file() {
-    KEY="$1"   # The key to update or add (e.g., "HOST_ID")
-    VALUE="$2" # The value to set for the key
+    FILE="$1"  # The file to be updated (e.g., .env)
+    KEY="$2"   # The key to update or add (e.g., "HOST_ID")
+    VALUE="$3" # The value to set for the key
 
-    printf "[INFO] Updating $COLLECTOR_ENV_FILE with $KEY=$VALUE\n"
-
-    # Check if the .env file exists
-    if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
-        printf "[INFO] $COLLECTOR_ENV_FILE does not exist. Creating a new one.\n"
-        echo "$KEY=$VALUE" > "$COLLECTOR_ENV_FILE"
-        printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
+    printf "[INFO] Updating $FILE with $KEY=$VALUE\n"
+    
+    # Check if the file exists
+    if [ ! -f "$FILE" ]; then
+        printf "[INFO] $FILE does not exist. Creating a new one.\n"
+        echo "$KEY=$VALUE" > "$FILE"
+        printf "[SUCCESS] $KEY added to $FILE.\n"
     else
         # Check if the key already exists
-        if grep -q "^$KEY=" "$COLLECTOR_ENV_FILE"; then
-            printf "[INFO] $KEY already exists in $COLLECTOR_ENV_FILE. Updating it.\n"
-            sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$COLLECTOR_ENV_FILE"  # Update the existing value
-            printf "[SUCCESS] $KEY updated in $COLLECTOR_ENV_FILE.\n\n"
+        if grep -q "^$KEY=" "$FILE"; then
+            printf "[INFO] $KEY already exists in $FILE. Updating it.\n"
+            sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$FILE"  # Update the existing value
+            printf "[SUCCESS] $KEY updated in $FILE.\n"
         else
-            printf "[INFO] $KEY not found in $COLLECTOR_ENV_FILE. Adding it.\n"
-            echo "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair with a preceeding newline
-            printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
+            printf "[INFO] $KEY not found in $FILE. Adding it.\n"
+            echo "$KEY=$VALUE" >> "$FILE"  # Append the new key-value pair with a preceeding newline
+            printf "[SUCCESS] $KEY added to $FILE.\n"
         fi
     fi
 }
@@ -270,9 +271,9 @@ setup_ecr() {
     aws configure set region $AWS_REGION
     # authenticate Docker with ECR
     if aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"; then
-        printf "[INFO] Successfully authenticated with AWS ECR.\n"
+        printf "[INFO] Successfully authenticated with AWS ECR.\n\n"
     else
-        printf "[ERROR] Failed to authenticate with AWS ECR. Exiting.\n"
+        printf "[ERROR] Failed to authenticate with AWS ECR. Exiting.\n\n"
         exit 1
     fi
 }
@@ -308,7 +309,7 @@ setup_certs() {
         printf "[INFO] SSL certificate already exists, skipping.\n"
     fi
 
-    printf "[INFO] All certificates and keys are stored in $CERT_DIR \n"
+    printf "[INFO] All certificates and keys are stored in $CERT_DIR \n\n"
 }
 
 # setup and run Frontend service
@@ -334,14 +335,16 @@ run_frontend() {
         fi
     done
     # force creation of custom.conf file
-    CUSTOM_CONF_FILE="$(pwd)/frontend/custom.conf"
+    CUSTOM_CONF_FILE="$(pwd)/frontend/.env"
     if [ ! -f "$CUSTOM_CONF_FILE" ]; then
-        echo "server_name $DOMAIN;" > "$CUSTOM_CONF_FILE"
+        touch "$CUSTOM_CONF_FILE"
         chmod 644 "$CUSTOM_CONF_FILE"
         printf "File created: $CUSTOM_CONF_FILE\n"
     else
         printf "File already exists: $CUSTOM_CONF_FILE\n"
     fi
+    # update env variables
+    update_env_file "$CUSTOM_CONF_FILE" "DOMAIN" "$DOMAIN"
     # stop and remove the existing container if it exists
     if [ "$(docker ps -aq -f name=$CONTAINER_NAME_FRONTEND)" ]; then
         printf "[INFO] A container with the name $CONTAINER_NAME_FRONTEND already exists. Removing it ...\n"
@@ -356,11 +359,11 @@ run_frontend() {
         --name $CONTAINER_NAME_FRONTEND \
         --restart=always \
         --network host \
+        --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
-        -v $(pwd)/frontend/custom.conf:/etc/nginx/conf.d/custom.conf:rw \
         -v $HOME/certs:/etc/nginx/certs:ro \
         $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
-    printf "\n                      Frontend service is up and running.                      \n"
+    printf "\n                      Frontend service is up and running.                      \n\n"
 }
 
 # setup and run Backend service
@@ -397,7 +400,7 @@ run_backend() {
         printf "[INFO] No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
     fi
     # run the new container
-    printf "[INFO] Starting a new container with the latest image ...\n"
+    printf "[INFO] Starting a new container with the latest image ...\n\n"
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
         --restart=always \
@@ -416,7 +419,7 @@ run_ai() {
     # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
     docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
-    printf "\n                      AI service is up and running.                      \n"
+    printf "\n                      AI service is up and running.                      \n\n"
 }
 
 cd $HOME
