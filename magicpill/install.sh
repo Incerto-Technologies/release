@@ -371,11 +371,16 @@ run_frontend() {
 
 # setup and run Backend service
 run_backend() {
+    # REQUIRED_DIRS=(
+    #     "$(pwd)/backend/migration"
+    #     "$(pwd)/backend/migration/incerto"
+    #     "$(pwd)/backend/config"
+    #     "$(pwd)/backend/config/rbac"
+    #     "$(pwd)/backend/log"
+    #     "$(pwd)/backend/resource"
+    # )
     REQUIRED_DIRS=(
-        "$(pwd)/backend/migration"
-        "$(pwd)/backend/config"
-        "$(pwd)/backend/log"
-        "$(pwd)/backend/resource"
+        "$(pwd)/backend"
     )
     REQUIRED_FILES=(
         "$(pwd)/backend/.env"
@@ -410,12 +415,13 @@ run_backend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v $(pwd)/backend/migration:/app/src/migration:rw \
-        -v $(pwd)/backend/config:/app/src/config:rw \
-        -v $(pwd)/backend/log:/app/src/log:rw \
-        -v $(pwd)/backend/resource:/app/src/resource:rw \
+        -v $(pwd)/backend:/app/src:rw \
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n"
+    # -v $(pwd)/backend/migration:/app/src/migration:rw \
+    #     -v $(pwd)/backend/config:/app/src/config:rw \
+    #     -v $(pwd)/backend/log:/app/src/log:rw \
+    #     -v $(pwd)/backend/resource:/app/src/resource:rw \
 }
 
 # setup and run AI service
