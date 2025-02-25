@@ -410,10 +410,10 @@ run_backend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v $(pwd)/backend/migration:/app/migration:rw \
-        -v $(pwd)/backend/config:/app/config:rw \
-        -v $(pwd)/backend/log:/app/log:rw \
-        -v $(pwd)/backend/resource:/app/resource:rw \
+        -v $(pwd)/backend/migration:/app/src/migration:rw \
+        -v $(pwd)/backend/config:/app/src/config:rw \
+        -v $(pwd)/backend/log:/app/src/log:rw \
+        -v $(pwd)/backend/resource:/app/src/resource:rw \
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n"
 }
@@ -443,21 +443,6 @@ run_frontend
 run_backend
 
 # run_ai
-
-# update env variables
-# update_env_file "HOST_ID" "$HOST_ID"
-# update_env_file "SERVICE_URL" "$SERVICE_URL"
-# if [ "$DATABASE" = "clickhouse" ]; then
-#     update_env_file "CLICKHOUSE_ENDPOINT" "$ENDPOINT"
-#     update_env_file "CLICKHOUSE_USERNAME" "$USERNAME"
-#     update_env_file "CLICKHOUSE_PASSWORD" "$PASSWORD"
-# elif [ "$DATABASE" = "postgres" ]; then
-#     update_env_file "POSTGRES_ENDPOINT" "$ENDPOINT"
-#     update_env_file "POSTGRES_USERNAME" "$USERNAME"
-#     update_env_file "POSTGRES_PASSWORD" "$PASSWORD"
-# else
-#     printf "[INFO] Nothing to update\n"
-# fi
 
 printf "\n************************************************************************\n"
 printf "                                                                        \n"
