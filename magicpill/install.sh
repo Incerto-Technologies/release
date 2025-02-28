@@ -90,25 +90,6 @@ done
 
 printf "\n[INFO] Proceeding with using \n\n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    domain: $DOMAIN\n\n"
 
-# Validate database and type combinations  
-# Determine the correct config.yaml URL based on the type
-# if [ "$DATABASE" = "clickhouse" ]; then
-#     if [ "$TYPE" != "worker" ] && [ "$TYPE" != "keeper" ]; then
-#         printf "[ERROR] Invalid type for clickhouse. Allowed values are 'worker' or 'keeper'.\n"
-#         exit 1
-#     fi
-#     COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
-# elif [ "$DATABASE" = "postgres" ]; then
-#     if [ "$TYPE" != "master" ] && [ "$TYPE" != "replica" ]; then
-#         printf "[ERROR] Invalid type for postgres. Allowed values are 'master' or 'replica'.\n"
-#         exit 1
-#     fi
-#     COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
-# else
-#     printf "[ERROR] Unsupported database type. Allowed values are 'clickhouse' or 'postgres'.\n"
-#     exit 1
-# fi
-
 # function to install Docker on Ubuntu
 install_docker_ubuntu() {
     printf "[INFO] Installing Docker on Ubuntu ...\n"
