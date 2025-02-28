@@ -407,7 +407,7 @@ run_backend() {
     fi
     # change permissions
     printf "[INFO] Change permissions for $(pwd)/backend/logs as it is read-write\n"
-    chmod 755 $(pwd)/backend/logs
+    chmod -R 755 $(pwd)/backend/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
@@ -458,7 +458,7 @@ run_ai() {
     fi
     # change permissions
     printf "[INFO] Change permissions for $(pwd)/ai/logs as it is read-write\n"
-    chmod 755 $(pwd)/ai/logs
+    chmod -R 755 $(pwd)/ai/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
     docker run -d \
