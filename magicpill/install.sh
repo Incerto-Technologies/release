@@ -397,7 +397,7 @@ run_backend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v backend_resource_scripts_alls:/app/src/resource/scripts/all:rw \
+        -v backend_resource_scripts_all:/app/src/resource/scripts/all:rw \
         -v backend_resource_pem:/app/src/resource/pem:rw \
         -v backend_resource_source:/app/src/resource/source:rw \
         -v backend_config_rbac:/app/src/config/rbac:rw \
