@@ -397,10 +397,10 @@ run_backend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v backend:/app/src/resource/scripts/all:rw \
-        -v backend:/app/src/resource/pem:rw \
-        -v backend:/app/src/resource/source:rw \
-        -v backend:/app/src/config/rbac:rw \
+        -v backend_resource_scripts_alls:/app/src/resource/scripts/all:rw \
+        -v backend_resource_pem:/app/src/resource/pem:rw \
+        -v backend_resource_source:/app/src/resource/source:rw \
+        -v backend_config_rbac:/app/src/config/rbac:rw \
         -v $(pwd)/backend/logs:/app/src/logs:rw \
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n\n"
