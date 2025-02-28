@@ -263,6 +263,11 @@ check_docker_permissions() {
     fi
 }
 
+# force Docker cleanup
+docker_cleanup () {
+    docker system prune -f
+}
+
 # setup AWS ECR
 setup_ecr() {
     # configure AWS credentials
@@ -472,6 +477,8 @@ run_frontend
 run_backend
 
 run_ai
+
+docker_cleanup
 
 printf "\n************************************************************************\n"
 printf "                                                                        \n"
