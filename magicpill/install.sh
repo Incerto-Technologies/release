@@ -406,7 +406,7 @@ run_backend() {
         printf "[INFO] No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
     fi
     # change permissions
-    printf "[INFO] Change permissions for $(pwd)/backend/logs \n"
+    printf "[INFO] Change permissions for $(pwd)/backend/logs as it is read-write\n"
     chmod 755 $(pwd)/backend/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image ...\n"
@@ -457,7 +457,7 @@ run_ai() {
         printf "[INFO] No existing container with the name $CONTAINER_NAME_AI found.\n"
     fi
     # change permissions
-    printf "[INFO] Change permissions for $(pwd)/ai/logs \n"
+    printf "[INFO] Change permissions for $(pwd)/ai/logs as it is read-write\n"
     chmod 755 $(pwd)/ai/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
