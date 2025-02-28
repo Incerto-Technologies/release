@@ -378,6 +378,7 @@ run_frontend() {
 run_backend() {
     REQUIRED_DIRS=(
         "$(pwd)/backend"
+        "$(pwd)/backend/logs"
     )
     REQUIRED_FILES=(
         "$(pwd)/backend/.env"
@@ -404,6 +405,9 @@ run_backend() {
     else
         printf "[INFO] No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
     fi
+    # change permissions
+    printf "[INFO] Change permissions for $(pwd)/backend/logs \n"
+    chmod 755 $(pwd)/backend/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
@@ -412,6 +416,11 @@ run_backend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
+        -v backend:/app/src/resource/scripts/all:rw \
+        -v backend:/app/src/resource/pem:rw \
+        -v backend:/app/src/resource/source:rw \
+        -v backend:/app/src/config/rbac:rw \
+        -v $(pwd)/backend/logs:/app/src/logs:rw /
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n\n"
 }
@@ -420,6 +429,7 @@ run_backend() {
 run_ai() {
     REQUIRED_DIRS=(
         "$(pwd)/ai"
+        "$(pwd)/ai/logs"
     )
     REQUIRED_FILES=(
         "$(pwd)/ai/.env"
@@ -446,6 +456,9 @@ run_ai() {
     else
         printf "[INFO] No existing container with the name $CONTAINER_NAME_AI found.\n"
     fi
+    # change permissions
+    printf "[INFO] Change permissions for $(pwd)/ai/logs \n"
+    chmod 755 $(pwd)/ai/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
     docker run -d \
@@ -454,7 +467,7 @@ run_ai() {
         --restart=always \
         --network host \
         --env-file $(pwd)/ai/.env \
-        -v ai:/app/logs:rw \
+        -v $(pwd)/ai/logs:/app/logs:rw \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
