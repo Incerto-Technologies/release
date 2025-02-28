@@ -407,7 +407,6 @@ run_backend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v $(pwd)/backend:/app/src:rw \
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n"
 }
@@ -471,7 +470,7 @@ run_frontend
 
 run_backend
 
-# run_ai
+run_ai
 
 printf "\n************************************************************************\n"
 printf "                                                                        \n"
