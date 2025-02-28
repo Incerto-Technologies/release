@@ -407,16 +407,51 @@ run_backend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v backend_volume:/app/src:rw \
+        -v $(pwd)/backend:/app/src:rw \
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n"
 }
 
 # setup and run AI service
 run_ai() {
+    REQUIRED_DIRS=(
+        "$(pwd)/ai"
+    )
+    REQUIRED_FILES=(
+        "$(pwd)/ai/.env"
+    )
+    # ensure required directories exist
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if [ ! -d "$dir" ]; then
+            printf "[INFO] Creating missing directory: $dir\n"
+            mkdir -p "$dir"
+        fi
+    done
+    # ensure required files exist
+    for file in "${REQUIRED_FILES[@]}"; do
+        if [ ! -f "$file" ]; then
+            printf "[ERROR] Required file missing: $file\n"
+            exit 1
+        fi
+    done
+    # stop and remove the existing container if it exists
+    if [ "$(docker ps -aq -f name=$CONTAINER_NAME_AI)" ]; then
+        printf "[INFO] A container with the name $CONTAINER_NAME_AI already exists. Removing it ...\n"
+        docker rm -f $CONTAINER_NAME_AI
+        printf "[SUCCESS] Existing container removed.\n"
+    else
+        printf "[INFO] No existing container with the name $CONTAINER_NAME_AI found.\n"
+    fi
     # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
-    docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
+    docker run -d \
+        --name $CONTAINER_NAME_AI \
+        --pull=always \
+        --restart=always \
+        --network host \
+        --env-file $(pwd)/ai/.env \
+        -v $(pwd)/ai/logs:/app/src/logs:rw \
+        $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
 
