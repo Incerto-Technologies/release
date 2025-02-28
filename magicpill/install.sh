@@ -454,7 +454,7 @@ run_ai() {
         --restart=always \
         --network host \
         --env-file $(pwd)/ai/.env \
-        -v logs:/app/logs:rw \
+        -v ai:/app/logs:rw \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
