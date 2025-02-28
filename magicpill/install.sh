@@ -420,7 +420,7 @@ run_backend() {
         -v backend:/app/src/resource/pem:rw \
         -v backend:/app/src/resource/source:rw \
         -v backend:/app/src/config/rbac:rw \
-        -v $(pwd)/backend/logs:/app/src/logs:rw /
+        -v $(pwd)/backend/logs:/app/src/logs:rw \
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n\n"
 }
