@@ -410,16 +410,24 @@ run_backend() {
     sudo chmod -R 777 $(pwd)/backend/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image ...\n"
+    # docker run -d \
+    #     --name $CONTAINER_NAME_BACKEND \
+    #     --pull=always \
+    #     --restart=always \
+    #     --network host \
+    #     --env-file $(pwd)/backend/.env \
+    #     -v backend:/app/src/resource/scripts/all:rw \
+    #     -v backend:/app/src/resource/pem:rw \
+    #     -v backend:/app/src/resource/source:rw \
+    #     -v backend:/app/src/config/rbac:rw \
+    #     -v $(pwd)/backend/logs:/app/src/logs:rw \
+    #     $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
         --pull=always \
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v backend:/app/src/resource/scripts/all:rw \
-        -v backend:/app/src/resource/pem:rw \
-        -v backend:/app/src/resource/source:rw \
-        -v backend:/app/src/config/rbac:rw \
         -v $(pwd)/backend/logs:/app/src/logs:rw \
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
     printf "\n                      Backend service is up and running.                      \n\n"
