@@ -420,7 +420,6 @@ run_backend() {
 run_ai() {
     REQUIRED_DIRS=(
         "$(pwd)/ai"
-        "$(pwd)/ai/logs"
     )
     REQUIRED_FILES=(
         "$(pwd)/ai/.env"
@@ -455,7 +454,7 @@ run_ai() {
         --restart=always \
         --network host \
         --env-file $(pwd)/ai/.env \
-        -v $(pwd)/ai/logs:/app/logs:rw \
+        -v logs:/app/logs:rw \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
