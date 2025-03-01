@@ -268,9 +268,7 @@ install_certbot() {
 
 # setup certificates
 setup_certs() {
-    CERT_DIR="$HOME/certs"
     EMAIL="shiva@incerto.in"  # Provide a valid email for Let's Encrypt notifications
-    mkdir -p "$CERT_DIR"
     
     # Install certbot
     install_certbot
@@ -280,19 +278,13 @@ setup_certs() {
     sudo certbot certonly --standalone -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive --rsa-key-size 2048
     # Copy certs to CERT_DIR
     CERTBOT_DIR="/etc/letsencrypt/live/$DOMAIN"
-    if [ -d "$CERTBOT_DIR" ]; then
-        printf "[INFO] Copying certificates to %s...\n" "$CERT_DIR"
-        sudo cp "$CERTBOT_DIR/fullchain.pem" "$CERT_DIR/fullchain.pem"
-        sudo cp "$CERTBOT_DIR/privkey.pem" "$CERT_DIR/privkey.pem"
-        printf "[INFO] Certificates successfully stored in %s.\n" "$CERT_DIR"
-    else
-        printf "[ERROR] Failed to obtain Let's Encrypt certificate.\n"
-        return 1
-    fi
-    printf "[INFO] Setup complete. SSL certificates are stored in %s.\n" "$CERT_DIR"
+    printf "[INFO] Copying certificates to /etc/letsencrypt/ssl/ ...\n"
+    sudo cp -r -L $CERTBOT_DIR/fullchain.pem /etc/letsencrypt/ssl/
+    sudo cp -r -L $CERTBOT_DIR/privkey.pem /etc/letsencrypt/ssl/
+    printf "[INFO] Setup complete. SSL certificates are stored in /etc/letsencrypt/ssl/ .\n"
 
     # Setup certificate renewal every 60 days if not already set
-    printf "[INFO] Setting up automatic certificate renewal...\n"
+    printf "[INFO] Setting up automatic certificate renewal ...\n"
     CRON_ENTRY="0 0 */60 * * root /opt/certbot/bin/python -c 'import random; import time; time.sleep(random.random() * 3600)' && sudo certbot renew -q"
     if ! grep -Fxq "$CRON_ENTRY" /etc/crontab; then
         echo "$CRON_ENTRY" | sudo tee -a /etc/crontab > /dev/null
@@ -300,7 +292,6 @@ setup_certs() {
     else
         printf "[INFO] Certificate renewal cron job already exists, skipping.\n"
     fi
-    printf "[INFO] Setup complete. SSL certificates are stored in %s.\n\n" "$CERT_DIR"
 }
 
 # setup and run Frontend service
@@ -353,7 +344,8 @@ run_frontend() {
         --network host \
         --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
-        -v $HOME/certs:/etc/nginx/certs:ro \
+        -v /etc/letsencrypt/ssl/fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro \
+        -v /etc/letsencrypt/ssl/privkey.pem:/etc/nginx/ssl/privkey.pem:ro \
         $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
     printf "\n                      Frontend service is up and running.                      \n\n"
 }
