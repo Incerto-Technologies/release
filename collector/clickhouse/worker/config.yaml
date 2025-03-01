@@ -1,5 +1,45 @@
 receivers:
-  incerto_clickhouse:
+  incerto_clickhouse/1h:
+    collection_interval: 7200s
+    endpoint: ${env:CLICKHOUSE_ENDPOINT}
+    username: ${env:CLICKHOUSE_USERNAME}
+    select:
+      - name: useless_tables
+        query: "SELECT p.database, p.table FROM ( SELECT max(modification_time) AS mm, `table`, database FROM system.parts GROUP BY database, `table` HAVING mm < '2025-01-01') AS p left  JOIN ( SELECT DISTINCT arrayJoin(tables) AS full_table_name FROM system.query_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q ON concat(p.database, '.', p.table) = q.full_table_name having  full_table_name = '' settings log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: no_ttl
+        query: "select database, table from system.tables where not create_table_query ILIKE '%TTL%' and total_rows > 1000000 settings log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+  incerto_clickhouse/5m:
+    collection_interval: 300s
+    endpoint: ${env:CLICKHOUSE_ENDPOINT}
+    username: ${env:CLICKHOUSE_USERNAME}
+    select:
+      - name: too_many_parts
+        query: SELECT database, `table`, count(*) as DataCount FROM system.parts WHERE active = 1 AND database != 'system' GROUP BY database, `table`, active HAVING count(*) > (SELECT IF(toInt32OrZero(value) = 0, 3000, toInt32OrZero(value)) * 0.9 FROM system.merge_tree_settings WHERE name = 'parts_to_throw_insert') ORDER BY database ASC, `table` ASC settings log_queries=0,log_profile_events=0
+        includeQueryLog: false
+
+      - name: read_only_tables
+        query: "select database, table, zookeeper_path, replica_name from system.replicas where is_readonly = 1 settings log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+
+    exists:
+      - name: failed_mutation
+        query: "SELECT * FROM system.mutations WHERE is_done = 0 AND latest_failed_part != '' AND ((now() - latest_fail_time) < (INTERVAL 1 MINUTE)) settings log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: query_throuhput_not_max
+        query: "select * from (select sum(multiIf(type = '1', 1, type = '2', -1, 0)) as value from system.query_log where event_time > now() - INTERVAL 1 MINUTE) where value > 4 settings log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: query_high_execution_time
+        query: "WITH (SELECT quantileExact(0.9999)(query_duration_ms) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time, query_id, query, query_duration_ms FROM system.query_log WHERE (query_duration_ms > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+      - name: unreachable_host
+        query: "with (select uniqExact(host_name) from system.clusters where cluster != 'default') as val1, (select uniqExact(hostName()) from clusterAllReplicas('clickhouse_cluster') settings skip_unavailable_shards = 1) as val2 select * from (select val1 == val2 as allConnected) where allConnected = 0 settings log_queries=0,log_profile_events=0"
+        includeQueryLog: false
+
+
+
+  incerto_clickhouse/1m:
     collection_interval: 60s
     endpoint: ${env:CLICKHOUSE_ENDPOINT}
     username: ${env:CLICKHOUSE_USERNAME}
@@ -52,21 +92,10 @@ receivers:
         query: WITH (SELECT ProfileEvent_MetadataFromKeeperBackgroundCleanupErrors FROM system.metric_log WHERE event_time BETWEEN (now() - INTERVAL 2 MINUTE) AND (now() - INTERVAL 1 MINUTE) ORDER BY event_time LIMIT 1) as PreviousException SELECT event_time, ProfileEvent_MetadataFromKeeperBackgroundCleanupErrors FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MINUTE AND ProfileEvent_MetadataFromKeeperBackgroundCleanupErrors > PreviousException settings log_queries=0,log_profile_events=0
         includeQueryLog: false
 
-      - name: query_throuhput_not_max
-        query: "select * from (select sum(multiIf(type = '1', 1, type = '2', -1, 0)) as value from system.query_log where event_time > now() - INTERVAL 1 MINUTE) where value > 4 settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-
-      - name: query_high_execution_time
-        query: "WITH (SELECT quantileExact(0.9999)(query_duration_ms) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time, query_id, query, query_duration_ms FROM system.query_log WHERE (query_duration_ms > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-
       - name: query_high_read_bytes
         query: "WITH (SELECT quantileExact(0.9999)(read_bytes) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time    , query_id, query, read_bytes FROM system.query_log WHERE (read_bytes > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
-      - name: failed_mutation
-        query: "SELECT * FROM system.mutations WHERE is_done = 0 AND latest_failed_part != '' AND ((now() - latest_fail_time) < (INTERVAL 1 MINUTE)) settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
       - name: queries_running_10
         query: "select * from (select count(*) as value from system.processes) where value > 10 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
@@ -91,10 +120,6 @@ receivers:
       - name: os_wait_high
         query: "with (select quantileExact(0.9999)(ProfileEvent_OSCPUWaitMicroseconds) from system.metric_log where event_time > now() -  INTERVAL 1 MONTH) as q  select  event_time,  ProfileEvent_OSCPUWaitMicroseconds from system.metric_log where ProfileEvent_OSCPUWaitMicroseconds > q and event_time > now() - INTERVAL 1 MINUTE settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
-      - name: unreachable_host
-        query: "with (select uniqExact(host_name) from system.clusters where cluster != 'default') as val1, (select uniqExact(hostName()) from clusterAllReplicas('clickhouse_cluster') settings skip_unavailable_shards = 1) as val2 select * from (select val1 == val2 as allConnected) where allConnected = 0 settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-
     select:
       - name: replication_issues
         query: "SELECT `database`, `table`, replica_name, type as task_type, position, required_quorum, is_detach, num_tries, last_exception, last_exception_time, last_attempt_time, merge_type FROM system.replication_queue WHERE last_exception_time > now() - INTERVAL 10 MINUTE SETTINGS log_queries=0,log_profile_events=0"
@@ -108,20 +133,11 @@ receivers:
       - name: mle_query
         query: "SELECT type as event_type, event_time, written_rows, memory_usage, current_database, query, query_kind, exception_code, exception, stack_trace, query_id, databases, tables FROM system.query_log WHERE exception_code = 241 AND event_time > now() - INTERVAL 10 Minutes SETTINGS log_queries=0,log_profile_events=0"
         includeQueryLog: false
-      - name: distributed_queries_inactive
-        query: "SELECT entry, cluster, query, query_create_time, status, exception_code, exception_text FROM system.distributed_ddl_queue WHERE status = '0' AND query_create_time > now() - INTERVAL 10 minute SETTINGS log_queries=0,log_profile_events=0"
-        includeQueryLog: false
       - name: query_log_errors
         query: "select type as event_type, event_time, written_rows, memory_usage, current_database, query, query_kind, exception_code, exception, stack_trace, query_id, databases, tables  from system.query_log where type > 3 and event_time > now() - INTERVAL 10 Minute SETTINGS log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: replica_health
         query: "SELECT database, table, is_readonly, is_session_expired, future_parts > 20 future_parts_problem, parts_to_check > 10 check_problem, queue_size > 20 queue_problem, inserts_in_queue > 10 insert_query_problem, merges_in_queue, log_max_index - log_pointer > 10 as log_diff, total_replicas < 2 replica_problem, active_replicas < total_replicas non_active FROM system.replicas WHERE is_readonly OR is_session_expired OR future_parts > 20 OR parts_to_check > 10 OR queue_size > 20 OR inserts_in_queue > 10 OR log_max_index - log_pointer > 10 OR total_replicas < 2 OR active_replicas < total_replicas settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-      - name: useless_tables
-        query: "SELECT p.database, p.table FROM ( SELECT max(modification_time) AS mm, `table`, database FROM system.parts GROUP BY database, `table` HAVING mm < '2025-01-01') AS p left  JOIN ( SELECT DISTINCT arrayJoin(tables) AS full_table_name FROM system.query_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q ON concat(p.database, '.', p.table) = q.full_table_name having  full_table_name = '' settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-      - name: no_ttl
-        query: "select database, table from system.tables where not create_table_query ILIKE '%TTL%' and total_rows > 1000000 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: mle
         query: "select sum(ProfileEvent_QueryMemoryLimitExceeded) count_mle from system.metric_log where event_time > now() - INTERVAL 20 Minutes and ProfileEvent_QueryMemoryLimitExceeded > 0 settings log_queries=0,log_profile_events=0"
@@ -129,16 +145,8 @@ receivers:
       - name: insert_exception
         query: "SELECT type, query_duration_ms, current_database, query, exception_code, exception, query_id FROM system.query_log WHERE (type = '4') AND (query_kind = 'Insert') AND (event_time > (now() - toIntervalMinute(2))) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
-      - name: too_many_parts
-        query: SELECT database, `table`, count(*) as DataCount FROM system.parts WHERE active = 1 AND database != 'system' GROUP BY database, `table`, active HAVING count(*) > (SELECT IF(toInt32OrZero(value) = 0, 3000, toInt32OrZero(value)) * 0.9 FROM system.merge_tree_settings WHERE name = 'parts_to_throw_insert') ORDER BY database ASC, `table` ASC settings log_queries=0,log_profile_events=0
-        includeQueryLog: false
-
       - name: query_running_since_minute
         query: "select query_id from system.processes where elapsed >= 60 settings log_queries=0,log_profile_events=0"
-        includeQueryLog: false
-
-      - name: read_only_tables
-        query: "select database, table, zookeeper_path, replica_name from system.replicas where is_readonly = 1 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: clickhouse_worker_down_10_minutes
@@ -155,7 +163,7 @@ receivers:
 
   hostmetrics:
     root_path: /
-    collection_interval: 60s
+    collection_interval: 300s
     scrapers:
       disk:
         metrics:
@@ -217,5 +225,5 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics, incerto_clickhouse]
+      receivers: [hostmetrics, incerto_clickhouse/1m, incerto_clickhouse/5m, incerto_clickhouse/1h]
       exporters: [debug, otlphttp]
