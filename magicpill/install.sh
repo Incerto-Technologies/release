@@ -282,12 +282,12 @@ setup_certs() {
     fi
 
     # Copy certs to CERT_DIR
-    CERTBOT_DIR="/etc/letsencrypt/live/$DOMAIN"
-    printf "[INFO] Copying certificates to /etc/letsencrypt/ssl/ ...\n"
-    sudo mkdir -p /etc/letsencrypt/ssl/
-    sudo cp -r -L $CERTBOT_DIR/fullchain.pem /etc/letsencrypt/ssl/
-    sudo cp -r -L $CERTBOT_DIR/privkey.pem /etc/letsencrypt/ssl/
-    printf "[INFO] Setup complete. SSL certificates are stored in /etc/letsencrypt/ssl/ .\n"
+    # CERTBOT_DIR="/etc/letsencrypt/live/$DOMAIN"
+    # printf "[INFO] Copying certificates to /etc/letsencrypt/ssl/ ...\n"
+    # sudo mkdir -p /etc/letsencrypt/ssl/
+    # sudo cp -r -L $CERTBOT_DIR/fullchain.pem /etc/letsencrypt/ssl/
+    # sudo cp -r -L $CERTBOT_DIR/privkey.pem /etc/letsencrypt/ssl/
+    # printf "[INFO] Setup complete. SSL certificates are stored in /etc/letsencrypt/ssl/ .\n"
 
     # Setup certificate renewal every 60 days if not already set
     printf "[INFO] Setting up automatic certificate renewal ...\n"
