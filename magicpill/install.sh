@@ -90,25 +90,6 @@ done
 
 printf "\n[INFO] Proceeding with using \n\n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    domain: $DOMAIN\n\n"
 
-# Validate database and type combinations  
-# Determine the correct config.yaml URL based on the type
-# if [ "$DATABASE" = "clickhouse" ]; then
-#     if [ "$TYPE" != "worker" ] && [ "$TYPE" != "keeper" ]; then
-#         printf "[ERROR] Invalid type for clickhouse. Allowed values are 'worker' or 'keeper'.\n"
-#         exit 1
-#     fi
-#     COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
-# elif [ "$DATABASE" = "postgres" ]; then
-#     if [ "$TYPE" != "master" ] && [ "$TYPE" != "replica" ]; then
-#         printf "[ERROR] Invalid type for postgres. Allowed values are 'master' or 'replica'.\n"
-#         exit 1
-#     fi
-#     COLLECTOR_CONFIG_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/$DATABASE/$TYPE/config.yaml"
-# else
-#     printf "[ERROR] Unsupported database type. Allowed values are 'clickhouse' or 'postgres'.\n"
-#     exit 1
-# fi
-
 # function to install Docker on Ubuntu
 install_docker_ubuntu() {
     printf "[INFO] Installing Docker on Ubuntu ...\n"
@@ -263,6 +244,11 @@ check_docker_permissions() {
     fi
 }
 
+# force Docker cleanup
+docker_cleanup () {
+    docker system prune -f
+}
+
 # setup AWS ECR
 setup_ecr() {
     # configure AWS credentials
@@ -372,10 +358,8 @@ run_frontend() {
 # setup and run Backend service
 run_backend() {
     REQUIRED_DIRS=(
-        "$(pwd)/backend/migration"
-        "$(pwd)/backend/config"
-        "$(pwd)/backend/log"
-        "$(pwd)/backend/resource"
+        "$(pwd)/backend"
+        "$(pwd)/backend/logs"
     )
     REQUIRED_FILES=(
         "$(pwd)/backend/.env"
@@ -402,6 +386,9 @@ run_backend() {
     else
         printf "[INFO] No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
     fi
+    # change permissions
+    printf "[INFO] Change permissions for $(pwd)/backend/logs as it is read-write\n"
+    sudo chmod -R 777 $(pwd)/backend/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
@@ -410,19 +397,59 @@ run_backend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v $(pwd)/backend/migration:/app/migration:rw \
-        -v $(pwd)/backend/config:/app/config:rw \
-        -v $(pwd)/backend/log:/app/log:rw \
-        -v $(pwd)/backend/resource:/app/resource:rw \
+        -v backend_resource_scripts_all:/app/src/resource/scripts/all:rw \
+        -v backend_resource_pem:/app/src/resource/pem:rw \
+        -v backend_resource_source:/app/src/resource/source:rw \
+        -v backend_config_rbac:/app/src/config/rbac:rw \
+        -v $(pwd)/backend/logs:/app/src/logs:rw \
         $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
-    printf "\n                      Backend service is up and running.                      \n"
+    printf "\n                      Backend service is up and running.                      \n\n"
 }
 
 # setup and run AI service
 run_ai() {
+    REQUIRED_DIRS=(
+        "$(pwd)/ai"
+        "$(pwd)/ai/logs"
+    )
+    REQUIRED_FILES=(
+        "$(pwd)/ai/.env"
+    )
+    # ensure required directories exist
+    for dir in "${REQUIRED_DIRS[@]}"; do
+        if [ ! -d "$dir" ]; then
+            printf "[INFO] Creating missing directory: $dir\n"
+            mkdir -p "$dir"
+        fi
+    done
+    # ensure required files exist
+    for file in "${REQUIRED_FILES[@]}"; do
+        if [ ! -f "$file" ]; then
+            printf "[ERROR] Required file missing: $file\n"
+            exit 1
+        fi
+    done
+    # stop and remove the existing container if it exists
+    if [ "$(docker ps -aq -f name=$CONTAINER_NAME_AI)" ]; then
+        printf "[INFO] A container with the name $CONTAINER_NAME_AI already exists. Removing it ...\n"
+        docker rm -f $CONTAINER_NAME_AI
+        printf "[SUCCESS] Existing container removed.\n"
+    else
+        printf "[INFO] No existing container with the name $CONTAINER_NAME_AI found.\n"
+    fi
+    # change permissions
+    printf "[INFO] Change permissions for $(pwd)/ai/logs as it is read-write\n"
+    sudo chmod -R 777 $(pwd)/ai/logs
     # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
-    docker run -d --name incerto-collector --restart=always --env-file $(pwd)/.env --network host -v $(pwd)/config.yaml:/config.yaml $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
+    docker run -d \
+        --name $CONTAINER_NAME_AI \
+        --pull=always \
+        --restart=always \
+        --network host \
+        --env-file $(pwd)/ai/.env \
+        -v $(pwd)/ai/logs:/app/logs:rw \
+        $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
 
@@ -442,22 +469,9 @@ run_frontend
 
 run_backend
 
-# run_ai
+run_ai
 
-# update env variables
-# update_env_file "HOST_ID" "$HOST_ID"
-# update_env_file "SERVICE_URL" "$SERVICE_URL"
-# if [ "$DATABASE" = "clickhouse" ]; then
-#     update_env_file "CLICKHOUSE_ENDPOINT" "$ENDPOINT"
-#     update_env_file "CLICKHOUSE_USERNAME" "$USERNAME"
-#     update_env_file "CLICKHOUSE_PASSWORD" "$PASSWORD"
-# elif [ "$DATABASE" = "postgres" ]; then
-#     update_env_file "POSTGRES_ENDPOINT" "$ENDPOINT"
-#     update_env_file "POSTGRES_USERNAME" "$USERNAME"
-#     update_env_file "POSTGRES_PASSWORD" "$PASSWORD"
-# else
-#     printf "[INFO] Nothing to update\n"
-# fi
+docker_cleanup
 
 printf "\n************************************************************************\n"
 printf "                                                                        \n"
