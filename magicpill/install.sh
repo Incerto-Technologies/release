@@ -294,9 +294,9 @@ setup_certs() {
     CRON_ENTRY="0 0 */60 * * root /opt/certbot/bin/python -c 'import random; import time; time.sleep(random.random() * 3600)' && sudo certbot renew -q"
     if ! grep -Fxq "$CRON_ENTRY" /etc/crontab; then
         echo "$CRON_ENTRY" | sudo tee -a /etc/crontab > /dev/null
-        printf "[INFO] Certificate renewal cron job added.\n"
+        printf "[INFO] Certificate renewal cron job added.\n\n"
     else
-        printf "[INFO] Certificate renewal cron job already exists, skipping.\n"
+        printf "[INFO] Certificate renewal cron job already exists, skipping.\n\n"
     fi
 }
 
@@ -350,8 +350,7 @@ run_frontend() {
         --network host \
         --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
-        -v /etc/letsencrypt/ssl/fullchain.pem:/etc/nginx/ssl/fullchain.pem:ro \
-        -v /etc/letsencrypt/ssl/privkey.pem:/etc/nginx/ssl/privkey.pem:ro \
+        -v /etc/letsencrypt:/etc/letsencrypt:ro \
         $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
     printf "\n                      Frontend service is up and running.                      \n\n"
 }
