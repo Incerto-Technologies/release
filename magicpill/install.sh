@@ -29,24 +29,6 @@ CONTAINER_NAME_AI="incerto-ai"
 # customer information
 DOMAIN="example.com"
 
-# COLLECTOR_CONFIG_URL="none"
-# COLLECTOR_CONFIG_FILE="config.yaml"
-# COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
-
-# `.env`
-# COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/.env"
-# COLLECTOR_ENV_FILE=".env"
-# COLLECTOR_ENV_BACKUP_FILE=".env.bak"
-
-# get url for 
-# SERVICE_URL="none"
-# run collector for `worker` or `keeper`
-# DATABASE="none"
-# TYPE="none"
-# ENDPOINT="none"
-# USERNAME=""
-# PASSWORD=""
-
 while [ $# -gt 0 ]; do
     case $1 in
         --aws-access-key-id)
@@ -270,34 +252,55 @@ setup_base_dir() {
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
 }
 
+# install certbot
+install_certbot() {
+    if command -v /usr/bin/certbot &> /dev/null; then
+        printf "[INFO] Certbot is already installed on this machine.\n\n"
+        return 0
+    fi
+    printf "[INFO] Installing Certbot using pip ...\n"
+    sudo python3 -m venv /opt/certbot/
+    sudo /opt/certbot/bin/pip install --upgrade pip
+    sudo /opt/certbot/bin/pip install certbot
+    sudo ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
+    printf "[INFO] Certbot installation complete.\n\n"
+}
+
 # setup certificates
 setup_certs() {
     CERT_DIR="$HOME/certs"
+    EMAIL="shiva@incerto.in"  # Provide a valid email for Let's Encrypt notifications
     mkdir -p "$CERT_DIR"
+    
+    # Install certbot
+    install_certbot
 
-    # generate Private Key
-    if [ ! -f "$CERT_DIR/privkey.pem" ]; then
-        printf "[INFO] Generating private key...\n"
-        openssl genrsa -out "$CERT_DIR/privkey.pem" 2048
+    # Obtain Let's Encrypt certificate
+    printf "[INFO] Requesting SSL certificate for %s using Let's Encrypt ...\n" "$DOMAIN"
+    sudo certbot certonly --standalone -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive --rsa-key-size 2048
+    # Copy certs to CERT_DIR
+    CERTBOT_DIR="/etc/letsencrypt/live/$DOMAIN"
+    if [ -d "$CERTBOT_DIR" ]; then
+        printf "[INFO] Copying certificates to %s...\n" "$CERT_DIR"
+        sudo cp "$CERTBOT_DIR/fullchain.pem" "$CERT_DIR/fullchain.pem"
+        sudo cp "$CERTBOT_DIR/privkey.pem" "$CERT_DIR/privkey.pem"
+        printf "[INFO] Certificates successfully stored in %s.\n" "$CERT_DIR"
     else
-        printf "[INFO] Private key already exists, skipping.\n"
+        printf "[ERROR] Failed to obtain Let's Encrypt certificate.\n"
+        return 1
     fi
-    # generate Certificate Signing Request (CSR)
-    if [ ! -f "$CERT_DIR/cert.csr" ]; then
-        printf "[INFO] Generating Certificate Signing Request (CSR)...\n"
-        openssl req -new -key "$CERT_DIR/privkey.pem" -out "$CERT_DIR/cert.csr" -subj "/CN=$DOMAIN/O=Incerto/C=IN"
-    else
-        printf "[INFO] CSR already exists, skipping.\n"
-    fi
-    # generate Self-Signed Certificate
-    if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
-        printf "[INFO] Generating self-signed SSL certificate...\n"
-        openssl x509 -req -days 1825 -in "$CERT_DIR/cert.csr" -signkey "$CERT_DIR/privkey.pem" -out "$CERT_DIR/fullchain.pem"
-    else
-        printf "[INFO] SSL certificate already exists, skipping.\n"
-    fi
+    printf "[INFO] Setup complete. SSL certificates are stored in %s.\n" "$CERT_DIR"
 
-    printf "[INFO] All certificates and keys are stored in $CERT_DIR \n\n"
+    # Setup certificate renewal every 60 days if not already set
+    printf "[INFO] Setting up automatic certificate renewal...\n"
+    CRON_ENTRY="0 0 */60 * * root /opt/certbot/bin/python -c 'import random; import time; time.sleep(random.random() * 3600)' && sudo certbot renew -q"
+    if ! grep -Fxq "$CRON_ENTRY" /etc/crontab; then
+        echo "$CRON_ENTRY" | sudo tee -a /etc/crontab > /dev/null
+        printf "[INFO] Certificate renewal cron job added.\n"
+    else
+        printf "[INFO] Certificate renewal cron job already exists, skipping.\n"
+    fi
+    printf "[INFO] Setup complete. SSL certificates are stored in %s.\n\n" "$CERT_DIR"
 }
 
 # setup and run Frontend service
