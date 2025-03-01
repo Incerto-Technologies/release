@@ -278,7 +278,7 @@ setup_certs() {
         echo "[INFO] Certificate already exists for $DIR. Skipping certificate creation."
     else
         printf "[INFO] Requesting SSL certificate for %s using Let's Encrypt ...\n" "$DOMAIN"
-    sudo certbot certonly --standalone -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive --rsa-key-size 2048
+    sudo certbot certonly --standalone -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive
     fi
 
     # Copy certs to CERT_DIR
@@ -350,7 +350,6 @@ run_frontend() {
         --network host \
         --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
-        -v /etc/letsencrypt:/etc/letsencrypt:ro \
         $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
     printf "\n                      Frontend service is up and running.                      \n\n"
 }
@@ -463,7 +462,7 @@ setup_ecr
 
 setup_base_dir
 
-setup_certs
+# setup_certs
 
 run_frontend
 
