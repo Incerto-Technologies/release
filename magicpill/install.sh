@@ -273,9 +273,14 @@ setup_certs() {
     # Install certbot
     install_certbot
 
-    # Obtain Let's Encrypt certificate
-    printf "[INFO] Requesting SSL certificate for %s using Let's Encrypt ...\n" "$DOMAIN"
+    # Run certbot certificates command and check if the certificate exists
+    if sudo certbot certificates | grep -q "$DOMAIN"; then
+        echo "[INFO] Certificate already exists for $DIR. Skipping certificate creation."
+    else
+        printf "[INFO] Requesting SSL certificate for %s using Let's Encrypt ...\n" "$DOMAIN"
     sudo certbot certonly --standalone -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive --rsa-key-size 2048
+    fi
+
     # Copy certs to CERT_DIR
     CERTBOT_DIR="/etc/letsencrypt/live/$DOMAIN"
     printf "[INFO] Copying certificates to /etc/letsencrypt/ssl/ ...\n"
