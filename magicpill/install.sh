@@ -554,7 +554,7 @@ run_ai() {
 
 install_aws_cli
 
-install_nginx
+# install_nginx
 
 setup_nginx_conf
 
