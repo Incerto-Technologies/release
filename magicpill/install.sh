@@ -290,9 +290,14 @@ setup_base_dir() {
 
 # setup nginx conf
 setup_nginx_conf() {
-    CONF_FILE="incerto.conf"
-
     CONF_FILE="/etc/nginx/conf.d/incerto.conf"
+
+    # Remove default.conf if it exists
+    DEFAULT_CONF="/etc/nginx/conf.d/default.conf"
+    if [ -f "$DEFAULT_CONF" ]; then
+        printf "[INFO] Removing default Nginx configuration file: $DEFAULT_CONF\n"
+        sudo rm -f "$DEFAULT_CONF"
+    fi
 
     # Check if the configuration file already exists
     if [ -f "$CONF_FILE" ]; then
@@ -316,13 +321,6 @@ server {
     
     proxy_read_timeout 86400s;
     proxy_send_timeout 86400s;
-
-    # SSL configuration
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers on;
-    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
-    ssl_session_timeout 1d;
-    ssl_session_cache shared:SSL:10m;
     
     # Frontend proxy
     location / {
@@ -354,10 +352,6 @@ EOF
 
     echo "Configuration file '${CONF_FILE}' created successfully."
 }
-
-# Usage example
-# create_nginx_conf "example.com"
-
 
 # install certbot
 install_certbot() {
@@ -560,6 +554,10 @@ run_ai() {
 }
 
 install_aws_cli
+
+install_nginx
+
+setup_nginx_conf
 
 install_docker
  
