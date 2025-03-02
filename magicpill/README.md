@@ -14,12 +14,12 @@ sudo systemctl start nginx
 sudo systemctl status nginx
 ```
 
-2. Remove nginx default.conf
+2. Remove `/etc/nginx/conf.d/default.conf`
 ```
 sudo rm /etc/nginx/conf.d/default.conf
 ```
 
-3. Create incerto.conf into /etc/nginx/conf.d/ replacing ${DOMAIN} variable
+3. Copy `incerto.conf` into `/etc/nginx/conf.d/` and replace ${DOMAIN} variable
 ```
 sudo vim /etc/nginx/conf.d/incerto.conf
 
@@ -34,7 +34,7 @@ sudo systemctl restart nginx
 
 # SSL/TLS Setup via Lets Encrypt
 
-1. Install certbot
+1. Install Certbot
 ```
 sudo python3 -m venv /opt/certbot/
 sudo /opt/certbot/bin/pip install --upgrade pip
@@ -42,11 +42,26 @@ sudo /opt/certbot/bin/pip install certbot certbot-nginx
 sudo ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
 ```
 
-2. Use the below certbot commands to install certificates for nginx
+2. Use the below certbot commands to install certificates for Nginx
 ```
 sudo certbot --nginx
 
 # Follow the instruction process
+```
+
+# Custom Certificates
+
+1. Follow the "SSL/TLS Setup via Lets Encrypt"
+
+2. Replace your customer certificates in the `/etc/nginx/conf.d/incerto.conf`
+```
+...
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/test.incerto.in/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/test.incerto.in/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+...
 ```
 
 # MagicPill Installation
