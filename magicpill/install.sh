@@ -115,41 +115,6 @@ install_aws_cli() {
     fi
 }
 
-install_nginx() {
-    if [ -x /usr/sbin/nginx ] || [ -x /usr/bin/nginx ]; then
-        printf "[INFO] Nginx is already installed on this machine.\n\n"
-        return 0
-    fi
-
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        case "$ID" in
-            ubuntu)
-                printf "[INFO] Installing Nginx on Ubuntu ...\n"
-                sudo apt update && sudo apt install -y nginx
-                ;;
-            rhel | centos | amzn)
-                printf "[INFO] Installing Nginx on RHEL-based system ...\n"
-                sudo yum install -y nginx
-                ;;
-            *)
-                printf "[ERROR] Unsupported operating system. Only Ubuntu and RHEL-based systems are supported.\n"
-                exit 1
-                ;;
-        esac
-
-        # Start and enable Nginx service
-        printf "[INFO] Starting and enabling Nginx service...\n\n"
-        sudo systemctl enable nginx
-        sudo systemctl start nginx
-        sudo systemctl status nginx
-        exit 0
-    else
-        printf "[ERROR] OS detection failed. Unable to proceed.\n\n"
-        exit 1
-    fi
-}
-
 # function to install Docker on RHEL
 install_docker_rhel() {
     printf "[INFO] Installing Docker on RHEL ...\n"
@@ -285,119 +250,6 @@ setup_ecr() {
 setup_base_dir() {
     cd "$HOME" || { printf "[ERROR] Failed to cd to home directory"; exit 1; }
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
-}
-
-# setup nginx conf
-setup_nginx_conf() {
-    CONF_FILE="/etc/nginx/conf.d/incerto.conf"
-
-    # Remove default.conf if it exists
-    DEFAULT_CONF="/etc/nginx/conf.d/default.conf"
-    if [ -f "$DEFAULT_CONF" ]; then
-        printf "[INFO] Removing default Nginx configuration file: $DEFAULT_CONF\n"
-        sudo rm -f "$DEFAULT_CONF"
-    fi
-
-    # Check if the configuration file already exists
-    if [ -f "$CONF_FILE" ]; then
-        printf "Configuration file '$CONF_FILE' already exists. Exiting. \n"
-        return 1
-    fi
-
-    cat <<EOF > "$CONF_FILE"
-server {
-    listen 80;
-    server_name ${DOMAIN};
-
-    location / {
-        return 301 https://\$host\$request_uri;
-    }
-}
-
-server {
-    listen 443 ssl;
-    server_name ${DOMAIN};
-    
-    proxy_read_timeout 86400s;
-    proxy_send_timeout 86400s;
-    
-    # Frontend proxy
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-    }
-    
-    # Backend proxy
-    location /api/ {
-        proxy_pass http://localhost:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-    }
-}
-EOF
-
-    echo "Configuration file '${CONF_FILE}' created successfully."
-}
-
-# install certbot
-install_certbot() {
-    if command -v /usr/bin/certbot &> /dev/null; then
-        printf "[INFO] Certbot is already installed on this machine.\n\n"
-        return 0
-    fi
-    printf "[INFO] Installing Certbot using pip ...\n"
-    sudo python3 -m venv /opt/certbot/
-    sudo /opt/certbot/bin/pip install --upgrade pip
-    sudo /opt/certbot/bin/pip install certbot
-    sudo ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
-    printf "[INFO] Certbot installation complete.\n\n"
-}
-
-# setup certificates
-setup_certs() {
-    EMAIL="shiva@incerto.in"  # Provide a valid email for Let's Encrypt notifications
-    
-    # Install certbot
-    install_certbot
-
-    # Run certbot certificates command and check if the certificate exists
-    if sudo certbot certificates | grep -q "$DOMAIN"; then
-        echo "[INFO] Certificate already exists for $DIR. Skipping certificate creation."
-    else
-        printf "[INFO] Requesting SSL certificate for %s using Let's Encrypt ...\n" "$DOMAIN"
-    sudo certbot certonly --standalone -d "$DOMAIN" --email "$EMAIL" --agree-tos --non-interactive
-    fi
-
-    # Copy certs to CERT_DIR
-    # CERTBOT_DIR="/etc/letsencrypt/live/$DOMAIN"
-    # printf "[INFO] Copying certificates to /etc/letsencrypt/ssl/ ...\n"
-    # sudo mkdir -p /etc/letsencrypt/ssl/
-    # sudo cp -r -L $CERTBOT_DIR/fullchain.pem /etc/letsencrypt/ssl/
-    # sudo cp -r -L $CERTBOT_DIR/privkey.pem /etc/letsencrypt/ssl/
-    # printf "[INFO] Setup complete. SSL certificates are stored in /etc/letsencrypt/ssl/ .\n"
-
-    # Setup certificate renewal every 60 days if not already set
-    printf "[INFO] Setting up automatic certificate renewal ...\n"
-    CRON_ENTRY="0 0 */60 * * root /opt/certbot/bin/python -c 'import random; import time; time.sleep(random.random() * 3600)' && sudo certbot renew -q"
-    if ! grep -Fxq "$CRON_ENTRY" /etc/crontab; then
-        echo "$CRON_ENTRY" | sudo tee -a /etc/crontab > /dev/null
-        printf "[INFO] Certificate renewal cron job added.\n\n"
-    else
-        printf "[INFO] Certificate renewal cron job already exists, skipping.\n\n"
-    fi
 }
 
 # setup and run Frontend service
@@ -554,10 +406,6 @@ run_ai() {
 
 install_aws_cli
 
-# install_nginx
-
-setup_nginx_conf
-
 install_docker
  
 check_docker_permissions
@@ -565,8 +413,6 @@ check_docker_permissions
 setup_ecr
 
 setup_base_dir
-
-# setup_certs
 
 run_frontend
 
