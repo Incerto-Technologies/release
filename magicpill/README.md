@@ -2,10 +2,10 @@
 
 1. Install Nginx
 ```
-# RHEL
+# Ubuntu
 sudo apt update && sudo apt install -y nginx
 
-# Ubuntu
+# RHEL
 sudo yum install -y nginx
 
 # Enable and start Nginx
@@ -38,7 +38,7 @@ sudo systemctl restart nginx
 ```
 sudo python3 -m venv /opt/certbot/
 sudo /opt/certbot/bin/pip install --upgrade pip
-sudo /opt/certbot/bin/pip install certbot
+sudo /opt/certbot/bin/pip install certbot certbot-nginx
 sudo ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
 ```
 
