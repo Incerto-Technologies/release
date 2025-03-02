@@ -349,7 +349,7 @@ run_frontend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/frontend/.env \
-        -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
+        -v $(pwd)/frontend/config.json:/app/config.json:rw \
         $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
     printf "\n                      Frontend service is up and running.                      \n\n"
 }
