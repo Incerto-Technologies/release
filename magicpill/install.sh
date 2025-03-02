@@ -72,23 +72,6 @@ done
 
 printf "\n[INFO] Proceeding with using \n\n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    domain: $DOMAIN\n\n"
 
-# function to install Docker on Ubuntu
-install_docker_ubuntu() {
-    printf "[INFO] Installing Docker on Ubuntu ...\n"
-    sudo apt-get update -y
-    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-    if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
-        sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
-    fi
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt-get update -y
-    sudo apt-get install -y docker-ce
-    sudo systemctl enable docker
-    sudo systemctl start docker
-    printf "[SUCCESS] Docker installed successfully on UBUNTU.\n"
-}
-
 # Function to check and install AWS CLI
 install_aws_cli() {
     if command -v aws &> /dev/null; then
@@ -113,6 +96,23 @@ install_aws_cli() {
         printf "[ERROR] OS detection failed. Unable to proceed.\n"
         exit 1
     fi
+}
+
+# function to install Docker on Ubuntu
+install_docker_ubuntu() {
+    printf "[INFO] Installing Docker on Ubuntu ...\n"
+    sudo apt-get update -y
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
+        sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
+    fi
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update -y
+    sudo apt-get install -y docker-ce
+    sudo systemctl enable docker
+    sudo systemctl start docker
+    printf "[SUCCESS] Docker installed successfully on UBUNTU.\n"
 }
 
 # function to install Docker on RHEL
@@ -184,6 +184,21 @@ install_docker() {
     fi
 }
 
+# check Docker permission
+check_docker_permissions() {
+    printf "[INFO] Checking Docker permissions for the current user ...\n"
+    if groups $USER | grep -q '\bdocker\b'; then
+        printf "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
+    else
+        printf "[INFO] User \`$USER\` does not have access to Docker without sudo.\n"
+        printf "[INFO] Adding user \`$USER\` to the \`docker\` group ...\n"
+        sudo usermod -aG docker $USER
+        printf "[INFO] User \`$USER\` added to the \`docker\` group.\n"
+        printf "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+        exit 0
+    fi
+}
+
 # update env file
 update_env_file() {
     FILE="$1"  # The file to be updated (e.g., .env)
@@ -208,21 +223,6 @@ update_env_file() {
             echo "$KEY=$VALUE" >> "$FILE"  # Append the new key-value pair with a preceeding newline
             printf "[SUCCESS] $KEY added to $FILE.\n"
         fi
-    fi
-}
-
-# check Docker permission
-check_docker_permissions() {
-    printf "[INFO] Checking Docker permissions for the current user ...\n"
-    if groups $USER | grep -q '\bdocker\b'; then
-        printf "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
-    else
-        printf "[INFO] User \`$USER\` does not have access to Docker without sudo.\n"
-        printf "[INFO] Adding user \`$USER\` to the \`docker\` group ...\n"
-        sudo usermod -aG docker $USER
-        printf "[INFO] User \`$USER\` added to the \`docker\` group.\n"
-        printf "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
-        exit 0
     fi
 }
 
