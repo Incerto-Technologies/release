@@ -115,6 +115,42 @@ install_aws_cli() {
     fi
 }
 
+install_nginx() {
+    if [ -x /usr/sbin/nginx ] || [ -x /usr/bin/nginx ]; then
+        printf "[INFO] Nginx is already installed on this machine.\n\n"
+        return 0
+    fi
+
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        case "$ID" in
+            ubuntu)
+                printf "[INFO] Installing Nginx on Ubuntu...\n"
+                sudo apt update && sudo apt install -y nginx
+                ;;
+            rhel | centos | amzn)
+                printf "[INFO] Installing Nginx on RHEL-based system...\n"
+                sudo yum install -y epel-release
+                sudo yum install -y nginx
+                ;;
+            *)
+                printf "[ERROR] Unsupported operating system. Only Ubuntu and RHEL-based systems are supported.\n"
+                exit 1
+                ;;
+        esac
+
+        # Start and enable Nginx service
+        printf "[INFO] Starting and enabling Nginx service...\n\n"
+        sudo systemctl enable nginx
+        sudo systemctl start nginx
+        sudo systemctl status nginx --no-pager
+        exit 0
+    else
+        printf "[ERROR] OS detection failed. Unable to proceed.\n\n"
+        exit 1
+    fi
+}
+
 # function to install Docker on RHEL
 install_docker_rhel() {
     printf "[INFO] Installing Docker on RHEL ...\n"
@@ -251,6 +287,77 @@ setup_base_dir() {
     cd "$HOME" || { printf "[ERROR] Failed to cd to home directory"; exit 1; }
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
 }
+
+# setup nginx conf
+setup_nginx_conf() {
+    CONF_FILE="incerto.conf"
+
+    CONF_FILE="/etc/nginx/conf.d/incerto.conf"
+
+    # Check if the configuration file already exists
+    if [ -f "$CONF_FILE" ]; then
+        printf "Configuration file '$CONF_FILE' already exists. Exiting. \n"
+        return 1
+    fi
+
+    cat <<EOF > "$CONF_FILE"
+server {
+    listen 80;
+    server_name ${DOMAIN};
+
+    location / {
+        return 301 https://\$host\$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN};
+    
+    proxy_read_timeout 86400s;
+    proxy_send_timeout 86400s;
+
+    # SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:10m;
+    
+    # Frontend proxy
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+    
+    # Backend proxy
+    location /api/ {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+EOF
+
+    echo "Configuration file '${CONF_FILE}' created successfully."
+}
+
+# Usage example
+# create_nginx_conf "example.com"
+
 
 # install certbot
 install_certbot() {
