@@ -49,5 +49,8 @@ sudo certbot --nginx
 # Follow the instruction process
 ```
 
-# Post Install Steps
+# MagicPill Installation
 
+```
+Ask the Incerto team for final command.
+```
