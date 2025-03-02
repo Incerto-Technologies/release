@@ -125,12 +125,11 @@ install_nginx() {
         . /etc/os-release
         case "$ID" in
             ubuntu)
-                printf "[INFO] Installing Nginx on Ubuntu...\n"
+                printf "[INFO] Installing Nginx on Ubuntu ...\n"
                 sudo apt update && sudo apt install -y nginx
                 ;;
             rhel | centos | amzn)
-                printf "[INFO] Installing Nginx on RHEL-based system...\n"
-                sudo yum install -y epel-release
+                printf "[INFO] Installing Nginx on RHEL-based system ...\n"
                 sudo yum install -y nginx
                 ;;
             *)
@@ -143,7 +142,7 @@ install_nginx() {
         printf "[INFO] Starting and enabling Nginx service...\n\n"
         sudo systemctl enable nginx
         sudo systemctl start nginx
-        sudo systemctl status nginx --no-pager
+        sudo systemctl status nginx
         exit 0
     else
         printf "[ERROR] OS detection failed. Unable to proceed.\n\n"
