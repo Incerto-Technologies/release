@@ -14,9 +14,9 @@ sudo systemctl start nginx
 sudo systemctl status nginx
 ```
 
-2. Remove `/etc/nginx/conf.d/default.conf`
+2. Remove `/etc/nginx/conf.d/default.conf` if it exists
 ```
-sudo rm /etc/nginx/conf.d/default.conf
+[ -f /etc/nginx/conf.d/default.conf ] && sudo rm /etc/nginx/conf.d/default.conf
 ```
 
 3. Copy `incerto.conf` into `/etc/nginx/conf.d/` and replace ${DOMAIN} variable
@@ -34,6 +34,8 @@ sudo systemctl restart nginx
 
 # SSL/TLS Setup via Lets Encrypt
 
+### For Certbot to work, port 80 and 443 are required
+
 1. Install Certbot
 ```
 sudo python3 -m venv /opt/certbot/
@@ -47,6 +49,11 @@ sudo ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
 sudo certbot --nginx
 
 # Follow the instruction process
+```
+
+3. Restart nginx
+```
+sudo systemctl restart nginx
 ```
 
 # Custom Certificates
