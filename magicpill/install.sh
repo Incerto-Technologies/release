@@ -29,24 +29,6 @@ CONTAINER_NAME_AI="incerto-ai"
 # customer information
 DOMAIN="example.com"
 
-# COLLECTOR_CONFIG_URL="none"
-# COLLECTOR_CONFIG_FILE="config.yaml"
-# COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
-
-# `.env`
-# COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/.env"
-# COLLECTOR_ENV_FILE=".env"
-# COLLECTOR_ENV_BACKUP_FILE=".env.bak"
-
-# get url for 
-# SERVICE_URL="none"
-# run collector for `worker` or `keeper`
-# DATABASE="none"
-# TYPE="none"
-# ENDPOINT="none"
-# USERNAME=""
-# PASSWORD=""
-
 while [ $# -gt 0 ]; do
     case $1 in
         --aws-access-key-id)
@@ -90,23 +72,6 @@ done
 
 printf "\n[INFO] Proceeding with using \n\n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    domain: $DOMAIN\n\n"
 
-# function to install Docker on Ubuntu
-install_docker_ubuntu() {
-    printf "[INFO] Installing Docker on Ubuntu ...\n"
-    sudo apt-get update -y
-    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-    if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
-        sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
-    fi
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt-get update -y
-    sudo apt-get install -y docker-ce
-    sudo systemctl enable docker
-    sudo systemctl start docker
-    printf "[SUCCESS] Docker installed successfully on UBUNTU.\n"
-}
-
 # Function to check and install AWS CLI
 install_aws_cli() {
     if command -v aws &> /dev/null; then
@@ -131,6 +96,23 @@ install_aws_cli() {
         printf "[ERROR] OS detection failed. Unable to proceed.\n"
         exit 1
     fi
+}
+
+# function to install Docker on Ubuntu
+install_docker_ubuntu() {
+    printf "[INFO] Installing Docker on Ubuntu ...\n"
+    sudo apt-get update -y
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+    if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
+        sudo rm -f /usr/share/keyrings/docker-archive-keyring.gpg
+    fi
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update -y
+    sudo apt-get install -y docker-ce
+    sudo systemctl enable docker
+    sudo systemctl start docker
+    printf "[SUCCESS] Docker installed successfully on UBUNTU.\n"
 }
 
 # function to install Docker on RHEL
@@ -202,6 +184,21 @@ install_docker() {
     fi
 }
 
+# check Docker permission
+check_docker_permissions() {
+    printf "[INFO] Checking Docker permissions for the current user ...\n"
+    if groups $USER | grep -q '\bdocker\b'; then
+        printf "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
+    else
+        printf "[INFO] User \`$USER\` does not have access to Docker without sudo.\n"
+        printf "[INFO] Adding user \`$USER\` to the \`docker\` group ...\n"
+        sudo usermod -aG docker $USER
+        printf "[INFO] User \`$USER\` added to the \`docker\` group.\n"
+        printf "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+        exit 0
+    fi
+}
+
 # update env file
 update_env_file() {
     FILE="$1"  # The file to be updated (e.g., .env)
@@ -229,21 +226,6 @@ update_env_file() {
     fi
 }
 
-# check Docker permission
-check_docker_permissions() {
-    printf "[INFO] Checking Docker permissions for the current user ...\n"
-    if groups $USER | grep -q '\bdocker\b'; then
-        printf "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
-    else
-        printf "[INFO] User \`$USER\` does not have access to Docker without sudo.\n"
-        printf "[INFO] Adding user \`$USER\` to the \`docker\` group ...\n"
-        sudo usermod -aG docker $USER
-        printf "[INFO] User \`$USER\` added to the \`docker\` group.\n"
-        printf "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
-        exit 0
-    fi
-}
-
 # force Docker cleanup
 docker_cleanup () {
     docker system prune -f
@@ -268,36 +250,6 @@ setup_ecr() {
 setup_base_dir() {
     cd "$HOME" || { printf "[ERROR] Failed to cd to home directory"; exit 1; }
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
-}
-
-# setup certificates
-setup_certs() {
-    CERT_DIR="$HOME/certs"
-    mkdir -p "$CERT_DIR"
-
-    # generate Private Key
-    if [ ! -f "$CERT_DIR/privkey.pem" ]; then
-        printf "[INFO] Generating private key...\n"
-        openssl genrsa -out "$CERT_DIR/privkey.pem" 2048
-    else
-        printf "[INFO] Private key already exists, skipping.\n"
-    fi
-    # generate Certificate Signing Request (CSR)
-    if [ ! -f "$CERT_DIR/cert.csr" ]; then
-        printf "[INFO] Generating Certificate Signing Request (CSR)...\n"
-        openssl req -new -key "$CERT_DIR/privkey.pem" -out "$CERT_DIR/cert.csr" -subj "/CN=$DOMAIN/O=Incerto/C=IN"
-    else
-        printf "[INFO] CSR already exists, skipping.\n"
-    fi
-    # generate Self-Signed Certificate
-    if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
-        printf "[INFO] Generating self-signed SSL certificate...\n"
-        openssl x509 -req -days 1825 -in "$CERT_DIR/cert.csr" -signkey "$CERT_DIR/privkey.pem" -out "$CERT_DIR/fullchain.pem"
-    else
-        printf "[INFO] SSL certificate already exists, skipping.\n"
-    fi
-
-    printf "[INFO] All certificates and keys are stored in $CERT_DIR \n\n"
 }
 
 # setup and run Frontend service
@@ -349,8 +301,7 @@ run_frontend() {
         --restart=always \
         --network host \
         --env-file $(pwd)/frontend/.env \
-        -v $(pwd)/frontend/config.json:/usr/share/nginx/html/config.json:rw \
-        -v $HOME/certs:/etc/nginx/certs:ro \
+        -v $(pwd)/frontend/config.json:/app/dist/config.json:rw \
         $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
     printf "\n                      Frontend service is up and running.                      \n\n"
 }
@@ -462,8 +413,6 @@ check_docker_permissions
 setup_ecr
 
 setup_base_dir
-
-setup_certs
 
 run_frontend
 
