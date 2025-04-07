@@ -67,3 +67,21 @@ sudo systemctl restart nginx
 ```
 Ask the Incerto team for final command with secrets and keys.
 ```
+
+## Setup Frontend 
+
+```
+Ask the Incerto team for Frontend `config.json`.
+```
+
+## Setup Backend
+
+```
+Ask the Incerto team for Backend `.env`.
+```
+
+## Setup AI
+
+```
+Ask the Incerto team for AI `.env`.
+```
