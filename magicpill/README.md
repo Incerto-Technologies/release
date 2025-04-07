@@ -1,4 +1,8 @@
-# Pre Install steps
+# README.md
+
+Please follow the below steps to install Incerto's MagicPill.
+
+# Nginx
 
 1. Install Nginx
 ```
@@ -19,24 +23,16 @@ sudo systemctl status nginx
 [ -f /etc/nginx/conf.d/default.conf ] && sudo rm /etc/nginx/conf.d/default.conf
 ```
 
-3. Copy `incerto.conf` into `/etc/nginx/conf.d/` and replace ${DOMAIN} variable
+## Certbot Certificates vs Custom Certificates
+
+### Certbot Certificates
+
+1. Copy `incerto_certbot.conf` into `/etc/nginx/conf.d/` and replace `${DOMAIN}` variable with your domain. Eg - `incerto.example.com`.
 ```
 sudo vim /etc/nginx/conf.d/incerto.conf
-
-# Replace ${DOMAIN} with your domain 
-# Eg - magicpill.incerto.in
 ```
 
-4. Restart nginx
-```
-sudo systemctl restart nginx
-```
-
-# SSL/TLS Setup via Lets Encrypt
-
-### For Certbot to work, port 80 and 443 are required
-
-1. Install Certbot
+2. Install Certbot using the below command.
 ```
 sudo python3 -m venv /opt/certbot/
 sudo /opt/certbot/bin/pip install --upgrade pip
@@ -44,34 +40,29 @@ sudo /opt/certbot/bin/pip install certbot certbot-nginx
 sudo ln -sf /opt/certbot/bin/certbot /usr/bin/certbot
 ```
 
-2. Use the below certbot commands to install certificates for Nginx
+3. Install Certificates using Certbot. For Certbot to work, port 80 and 443 are required to be open to public internet.
 ```
 sudo certbot --nginx
-
-# Follow the instruction process
 ```
 
-3. Restart nginx
+4. Restart Nginx.
 ```
 sudo systemctl restart nginx
 ```
 
-# Custom Certificates
+### Custom Certificates
 
-1. Follow the "SSL/TLS Setup via Lets Encrypt"
-
-2. Replace your customer certificates in the `/etc/nginx/conf.d/incerto.conf`
+1. Copy `incerto_custom.conf` into `/etc/nginx/conf.d/` and replace `${PRIVKEY}`, `${FULLCHAIN}`, `${DOMAIN}` variable. Eg - `incerto.example.com`.
 ```
-...
-    listen 443 ssl; # managed by Certbot
-    ssl_certificate /etc/letsencrypt/live/test.incerto.in/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/test.incerto.in/privkey.pem; # managed by Certbot
-    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
-...
+sudo vim /etc/nginx/conf.d/incerto.conf
 ```
 
-# MagicPill Installation
+2. Restart Nginx
+```
+sudo systemctl restart nginx
+```
+
+# MagicPill
 
 ```
 Ask the Incerto team for final command with secrets and keys.
