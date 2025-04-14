@@ -258,6 +258,7 @@ run_frontend() {
         "$(pwd)/frontend"
     )
     REQUIRED_FILES=(
+        "$(pwd)/frontend/.env"
         "$(pwd)/frontend/config.json"
     )
     # ensure required directories exist
