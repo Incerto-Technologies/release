@@ -270,21 +270,11 @@ run_frontend() {
     # ensure required files exist
     for file in "${REQUIRED_FILES[@]}"; do
         if [ ! -f "$file" ]; then
-            printf "[ERROR] Required file missing: $file\n"
-            exit 1
+            printf "[INFO] Required file missing: $file\n"
+            touch "$file"
+            printf "[INFO] Created the missing file: $file\n"
         fi
     done
-    # force creation of custom.conf file
-    CUSTOM_CONF_FILE="$(pwd)/frontend/.env"
-    if [ ! -f "$CUSTOM_CONF_FILE" ]; then
-        touch "$CUSTOM_CONF_FILE"
-        chmod 644 "$CUSTOM_CONF_FILE"
-        printf "File created: $CUSTOM_CONF_FILE\n"
-    else
-        printf "File already exists: $CUSTOM_CONF_FILE\n"
-    fi
-    # update env variables
-    update_env_file "$CUSTOM_CONF_FILE" "DOMAIN" "$DOMAIN"
     # stop and remove the existing container if it exists
     if [ "$(docker ps -aq -f name=$CONTAINER_NAME_FRONTEND)" ]; then
         printf "[INFO] A container with the name $CONTAINER_NAME_FRONTEND already exists. Removing it ...\n"
@@ -299,6 +289,7 @@ run_frontend() {
         --name $CONTAINER_NAME_FRONTEND \
         --pull=always \
         --restart=always \
+        --memory=1000m \
         --network host \
         --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/app/dist/config.json:rw \
@@ -325,8 +316,9 @@ run_backend() {
     # ensure required files exist
     for file in "${REQUIRED_FILES[@]}"; do
         if [ ! -f "$file" ]; then
-            printf "[ERROR] Required file missing: $file\n"
-            exit 1
+            printf "[INFO] Required file missing: $file\n"
+            touch "$file"
+            printf "[INFO] Created the missing file: $file\n"
         fi
     done
     # stop and remove the existing container if it exists
@@ -346,6 +338,7 @@ run_backend() {
         --name $CONTAINER_NAME_BACKEND \
         --pull=always \
         --restart=always \
+        --memory=2500m \
         --network host \
         --env-file $(pwd)/backend/.env \
         -v backend_resource_scripts_all:/app/src/resource/scripts/all:rw \
@@ -376,8 +369,9 @@ run_ai() {
     # ensure required files exist
     for file in "${REQUIRED_FILES[@]}"; do
         if [ ! -f "$file" ]; then
-            printf "[ERROR] Required file missing: $file\n"
-            exit 1
+            printf "[INFO] Required file missing: $file\n"
+            touch "$file"
+            printf "[INFO] Created the missing file: $file\n"
         fi
     done
     # stop and remove the existing container if it exists
@@ -397,6 +391,7 @@ run_ai() {
         --name $CONTAINER_NAME_AI \
         --pull=always \
         --restart=always \
+        --memory=2500m \
         --network host \
         --env-file $(pwd)/ai/.env \
         -v $(pwd)/ai/logs:/app/logs:rw \
