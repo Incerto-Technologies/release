@@ -362,7 +362,7 @@ docker run -d --name incerto-collector \
     --restart=always \
     --env-file $(pwd)/.env \
     --network host \
-    -v $(pwd)/config.yaml:/config.yaml \
+    -v $(pwd)/config.yaml:/tmp/config.yaml \
     -v /proc:/hostfs/proc \
     -v /:/hostfs \
     -v /var/run/docker.sock:/var/run/docker.sock:rw \
