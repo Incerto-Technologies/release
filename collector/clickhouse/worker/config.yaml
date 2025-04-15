@@ -34,7 +34,7 @@ receivers:
         query: "WITH (SELECT quantileExact(0.9999)(query_duration_ms) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time, query_id, query, query_duration_ms FROM system.query_log WHERE (query_duration_ms > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: unreachable_host
-        query: "with (select uniqExact(host_name) from system.clusters where cluster != 'default') as val1, (select uniqExact(hostName()) from clusterAllReplicas('clickhouse_cluster') settings skip_unavailable_shards = 1) as val2 select * from (select val1 == val2 as allConnected) where allConnected = 0 settings log_queries=0,log_profile_events=0"
+        query: "with (select uniqExact(host_name) from system.clusters where cluster != 'default') as val1, (select cluster from system.clusters WHERE cluster != 'default' LIMIT 1) as cluster_name, (select uniqExact(hostName()) from clusterAllReplicas(cluster_name) settings skip_unavailable_shards = 1) as val2 select * from (select val1 == val2 as allConnected) where allConnected = 0 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
 
@@ -158,7 +158,7 @@ receivers:
         includeQueryLog: false
 
       - name: duplicate_macros
-        query: "SELECT data.Macro as Macro, arrayStringConcat(groupArray(HostName), ',') as Hosts FROM (SELECT hostName() as HostName, arrayStringConcat(groupArray(CONCAT(macro, ':', substitution)), ',') as Macro FROM clusterAllReplicas('clickhouse_cluster', 'system.macros') GROUP BY hostName()) as data GROUP BY data.Macro HAVING COUNT(*) > 1 settings log_queries=0,log_profile_events=0"
+        query: "with (select cluster from system.clusters WHERE cluster != 'default' LIMIT 1) as cluster_name SELECT data.Macro as Macro, arrayStringConcat(groupArray(HostName), ',') as Hosts FROM (SELECT hostName() as HostName, arrayStringConcat(groupArray(CONCAT(macro, ':', substitution)), ',') as Macro FROM clusterAllReplicas(cluster_name, 'system.macros') GROUP BY hostName()) as data GROUP BY data.Macro HAVING COUNT(*) > 1 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
   hostmetrics:
