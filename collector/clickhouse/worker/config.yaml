@@ -37,8 +37,6 @@ receivers:
         query: "with (select uniqExact(host_name) from system.clusters where cluster != 'default') as val1, (select cluster from system.clusters WHERE cluster != 'default' LIMIT 1) as cluster_name, (select uniqExact(hostName()) from clusterAllReplicas(cluster_name) settings skip_unavailable_shards = 1) as val2 select * from (select val1 == val2 as allConnected) where allConnected = 0 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
-
-
   incerto_clickhouse/1m:
     collection_interval: 60s
     endpoint: ${env:CLICKHOUSE_ENDPOINT}
@@ -46,6 +44,11 @@ receivers:
     exists:
       - name: s3_failure
         query: "select hostname from system.blob_storage_log where event_time > now () - INTERVAL 2 Minutes and error != '' limit 1"
+        includeQueryLog: false
+
+      - name: too_many_s3_requests
+        # query: "select count() from system.blob_storage_log where disk_name='s3' and event_time > now() - interval 10 minute;"
+        query: "select 1 where (select sum(CurrentMetric_S3Requests) from system.metric_log where event_time > now() - interval 10 minute) > 100;"
         includeQueryLog: false
 
       - name: free_disk_below_20_percent
@@ -229,5 +232,11 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics, incerto_clickhouse/1m, incerto_clickhouse/5m, incerto_clickhouse/1h]
+      receivers:
+        [
+          hostmetrics,
+          incerto_clickhouse/1m,
+          incerto_clickhouse/5m,
+          incerto_clickhouse/1h,
+        ]
       exporters: [debug, otlphttp]
