@@ -11,26 +11,33 @@ AWS_SECRET_ACCESS_KEY="none"
 # frontend service
 ECR_URL_FRONTEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto"
 IMAGE_NAME_FRONTEND="frontend"
-IMAGE_TAG_FRONTEND="latest"
+IMAGE_TAG_FRONTEND="prod"
 CONTAINER_NAME_FRONTEND="incerto-frontend"
 
 # backend service
 ECR_URL_BACKEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto"
 IMAGE_NAME_BACKEND="backend"
-IMAGE_TAG_BACKEND="latest"
+IMAGE_TAG_BACKEND="prod"
 CONTAINER_NAME_BACKEND="incerto-backend"
 
 # ai service
 ECR_URL_AI="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto"
 IMAGE_NAME_AI="ai"
-IMAGE_TAG_AI="latest"
+IMAGE_TAG_AI="prod"
 CONTAINER_NAME_AI="incerto-ai"
 
-# customer information
-DOMAIN="example.com"
+# env
+ENV="prod"
 
 while [ $# -gt 0 ]; do
     case $1 in
+        --env)
+            ENV="$2"
+            if [ -z "$ENV" ]; then
+                printf "[INFO] Missing value for --env. Defaulting to 'prod'. Accepted values: 'dev' or 'prod'. \n"
+            fi
+            shift 2
+            ;;
         --aws-access-key-id)
             AWS_ACCESS_KEY_ID="$2"
             if [ -z "$AWS_ACCESS_KEY_ID" ]; then
@@ -70,7 +77,18 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-printf "\n[INFO] Proceeding with using \n\n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    domain: $DOMAIN\n\n"
+printf "\n[INFO] Proceeding with using \n\n    env: $ENV \n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    domain: $DOMAIN\n\n"
+
+# Update image tags based on the ENV value
+if [ "$ENV" = "dev" ]; then
+    IMAGE_TAG_FRONTEND="dev"
+    IMAGE_TAG_BACKEND="dev"
+    IMAGE_TAG_AI="dev"
+else
+    IMAGE_TAG_FRONTEND="prod"
+    IMAGE_TAG_BACKEND="prod"
+    IMAGE_TAG_AI="prod"
+fi
 
 # Function to check and install AWS CLI
 install_aws_cli() {
