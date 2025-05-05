@@ -9,20 +9,20 @@ AWS_ACCESS_KEY_ID="none"
 AWS_SECRET_ACCESS_KEY="none"
 
 # frontend service
-ECR_URL_FRONTEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto"
-IMAGE_NAME_FRONTEND="frontend"
+ECR_URL_FRONTEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com"
+IMAGE_NAME_FRONTEND="incerto/frontend"
 IMAGE_TAG_FRONTEND="prod"
 CONTAINER_NAME_FRONTEND="incerto-frontend"
 
 # backend service
-ECR_URL_BACKEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto"
-IMAGE_NAME_BACKEND="backend"
+ECR_URL_BACKEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com"
+IMAGE_NAME_BACKEND="incerto/backend"
 IMAGE_TAG_BACKEND="prod"
 CONTAINER_NAME_BACKEND="incerto-backend"
 
 # ai service
-ECR_URL_AI="434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto"
-IMAGE_NAME_AI="ai"
+ECR_URL_AI="434499855633.dkr.ecr.ap-south-1.amazonaws.com"
+IMAGE_NAME_AI="incerto/ai"
 IMAGE_TAG_AI="prod"
 CONTAINER_NAME_AI="incerto-ai"
 
