@@ -302,13 +302,20 @@ run_frontend() {
     else
         printf "[INFO] No existing container with the name $CONTAINER_NAME_FRONTEND found.\n"
     fi
+
+    # set up memory limits
+    MEMORY_LIMIT_PERCENTAGE=40
+    MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+    MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    
     # run the new container
     printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
         --name $CONTAINER_NAME_FRONTEND \
         --pull=always \
         --restart=always \
-        --memory=1000m \
+        --memory=${MEMORY_LIMIT_MB}m \
         --network host \
         --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/app/dist/config.json:rw \
@@ -351,13 +358,20 @@ run_backend() {
     # change permissions
     printf "[INFO] Change permissions for $(pwd)/backend/logs as it is read-write\n"
     sudo chmod -R 777 $(pwd)/backend/logs
+    
+    # set up memory limits
+    MEMORY_LIMIT_PERCENTAGE=50
+    MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+    MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    
     # run the new container
     printf "[INFO] Starting a new container with the latest image ...\n"
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
         --pull=always \
         --restart=always \
-        --memory=2500m \
+        --memory=${MEMORY_LIMIT_MB}m \
         --network host \
         --env-file $(pwd)/backend/.env \
         -v backend_resource_scripts_all:/app/src/resource/scripts/all:rw \
@@ -404,13 +418,20 @@ run_ai() {
     # change permissions
     printf "[INFO] Change permissions for $(pwd)/ai/logs as it is read-write\n"
     sudo chmod -R 777 $(pwd)/ai/logs
+    
+    # set up memory limits
+    MEMORY_LIMIT_PERCENTAGE=50
+    MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+    MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    
     # run the new container
     printf "[INFO] Starting a new container with the latest image...\n"
     docker run -d \
         --name $CONTAINER_NAME_AI \
         --pull=always \
         --restart=always \
-        --memory=2500m \
+        --memory=${MEMORY_LIMIT_MB}m \
         --network host \
         --env-file $(pwd)/ai/.env \
         -v $(pwd)/ai/logs:/app/logs:rw \
