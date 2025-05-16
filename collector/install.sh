@@ -9,7 +9,7 @@ PUBLIC_IP=$(curl -sf http://checkip.amazonaws.com)
 # registry details
 ECR_URL="public.ecr.aws/t9w7u8l8/incerto"
 IMAGE_NAME="collector"
-IMAGE_TAG="latest"
+IMAGE_TAG="prod"
 CONTAINER_NAME="incerto-collector"
 
 COLLECTOR_CONFIG_URL="none"
@@ -30,8 +30,18 @@ ENDPOINT="none"
 USERNAME=""
 PASSWORD=""
 
+# env
+ENV="prod"
+
 while [ $# -gt 0 ]; do
     case $1 in
+        --env)
+            ENV="$2"
+            if [ -z "$ENV" ]; then
+                printf "[INFO] Missing value for --env. Defaulting to 'prod'. Accepted values: 'dev' or 'prod'. \n"
+            fi
+            shift 2
+            ;;
         --service-url)
             SERVICE_URL="$2"
             if [ -z "$SERVICE_URL" ]; then
@@ -89,7 +99,14 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-printf "\n[INFO] Proceeding with using \n\n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
+printf "\n[INFO] Proceeding with using \n\n    env: $ENV \n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
+
+# Update image tags based on the ENV value
+if [ "$ENV" = "dev" ]; then
+    IMAGE_TAG="dev"
+else
+    IMAGE_TAG="prod"
+fi
 
 # Validate database and type combinations  
 # Determine the correct config.yaml URL based on the type
@@ -196,6 +213,26 @@ install_docker() {
     fi
 }
 
+# check Docker permission
+check_docker_permissions() {
+    printf "[INFO] Checking Docker permissions for the current user ...\n"
+    if groups $USER | grep -q '\bdocker\b'; then
+        printf "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
+    else
+        printf "[INFO] User \`$USER\` does not have access to Docker without sudo.\n"
+        printf "[INFO] Adding user \`$USER\` to the \`docker\` group ...\n"
+        sudo usermod -aG docker $USER
+        printf "[INFO] User \`$USER\` added to the \`docker\` group.\n"
+        printf "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+        exit 0
+    fi
+}
+
+# force Docker cleanup
+docker_cleanup () {
+    docker system prune -f
+}
+
 # check and install jq
 install_jq() {
     if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
@@ -218,6 +255,7 @@ install_jq() {
     fi
 }
 
+# update env file
 update_env_file() {
     KEY="$1"   # The key to update or add (e.g., "HOST_ID")
     VALUE="$2" # The value to set for the key
@@ -240,20 +278,6 @@ update_env_file() {
             echo "$KEY=$VALUE" >> "$COLLECTOR_ENV_FILE"  # Append the new key-value pair with a preceeding newline
             printf "[SUCCESS] $KEY added to $COLLECTOR_ENV_FILE.\n\n"
         fi
-    fi
-}
-
-check_docker_permissions() {
-    printf "[INFO] Checking Docker permissions for the current user ...\n"
-    if groups $USER | grep -q '\bdocker\b'; then
-        printf "[INFO] User \`$USER\` already has access to Docker without sudo.\n"
-    else
-        printf "[INFO] User \`$USER\` does not have access to Docker without sudo.\n"
-        printf "[INFO] Adding user \`$USER\` to the \`docker\` group ...\n"
-        sudo usermod -aG docker $USER
-        printf "[INFO] User \`$USER\` added to the \`docker\` group.\n"
-        printf "[SUCCESS] User added to Docker group. Please logout and log back in. \n[INFO] Run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
-        exit 0
     fi
 }
 
@@ -360,6 +384,7 @@ fi
 printf "[INFO] Starting a new container with the latest image...\n"
 docker run -d --name incerto-collector \
     --restart=always \
+    --memory=500m \
     --env-file $(pwd)/.env \
     --network host \
     -v $(pwd)/config.yaml:/tmp/config.yaml \
@@ -367,8 +392,9 @@ docker run -d --name incerto-collector \
     -v /:/hostfs \
     -v /var/run/docker.sock:/var/run/docker.sock:rw \
     $ECR_URL/$IMAGE_NAME:$IMAGE_TAG
-
 printf "\n                      Container is up and running.                      \n"
+
+docker_cleanup
 
 printf "\n************************************************************************\n"
 printf "                                                                        \n"
