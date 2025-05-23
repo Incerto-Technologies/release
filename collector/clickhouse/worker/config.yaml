@@ -5,10 +5,10 @@ receivers:
     username: ${env:CLICKHOUSE_USERNAME}
     select:
       - name: useless_tables
-        query: "SELECT `database`, `table`, p.mm AS last_modifidation_time FROM (SELECT max(modification_time) AS mm, `table`, database FROM system.parts GROUP BY database, `table` HAVING mm < '2025-01-01') AS p LEFT JOIN (SELECT DISTINCT arrayJoin(tables) AS full_table_name FROM system.query_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q ON concat(p.database, '.', p.table) = q.full_table_name HAVING full_table_name = '' settings log_queries=0,log_profile_events=0"
+        query: "SELECT `database`, `table`, p.mm AS last_modifidation_time FROM (SELECT max(modification_time) AS mm, `table`, database FROM system.parts GROUP BY database, `table` HAVING mm < '2025-01-01') AS p LEFT JOIN (SELECT DISTINCT arrayJoin(tables) AS full_table_name FROM system.query_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q ON concat(p.database, '.', p.table) = q.full_table_name HAVING full_table_name = '' ORDER BY last_modifidation_time DESC settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: no_ttl
-        query: "select database, table from system.tables where not create_table_query ILIKE '%TTL%' and total_rows > 1000000 settings log_queries=0,log_profile_events=0"
+        query: "select database, table from system.tables where not create_table_query ILIKE '%TTL%' and total_rows > 1000000 ORDER BY total_rows DESC settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
   incerto_clickhouse/5m:
     collection_interval: 300s
@@ -16,7 +16,7 @@ receivers:
     username: ${env:CLICKHOUSE_USERNAME}
     select:
       - name: too_many_parts
-        query: SELECT database, `table`, count(*) as DataCount FROM system.parts WHERE active = 1 AND database != 'system' GROUP BY database, `table`, active HAVING count(*) > (SELECT IF(toInt32OrZero(value) = 0, 3000, toInt32OrZero(value)) * 0.9 FROM system.merge_tree_settings WHERE name = 'parts_to_throw_insert') ORDER BY database ASC, `table` ASC settings log_queries=0,log_profile_events=0
+        query: SELECT database, `table`, count(*) as DataCount FROM system.parts WHERE active = 1 AND database != 'system' GROUP BY database, `table`, active HAVING count(*) > (SELECT IF(toInt32OrZero(value) = 0, 3000, toInt32OrZero(value)) * 0.9 FROM system.merge_tree_settings WHERE name = 'parts_to_throw_insert') ORDER BY DataCount DESC, database ASC, `table` ASC settings log_queries=0,log_profile_events=0
         includeQueryLog: false
 
       - name: read_only_tables
@@ -28,7 +28,7 @@ receivers:
         includeQueryLog: false
 
       - name: query_high_execution_time
-        query: "WITH (SELECT quantileExact(0.9999)(query_duration_ms) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time, query_id, query, query_duration_ms FROM system.query_log WHERE (query_duration_ms > q) AND (event_time > (now() - toIntervalMinute(10))) settings log_queries=0,log_profile_events=0"
+        query: "WITH (SELECT quantileExact(0.9999)(query_duration_ms) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time, query_id, query, query_duration_ms FROM system.query_log WHERE (query_duration_ms > q) AND (event_time > (now() - toIntervalMinute(10))) ORDER BY query_duration_ms DESC settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
     exists:
@@ -105,23 +105,23 @@ receivers:
         includeQueryLog: false
 
       - name: query_high_read_bytes
-        query: "WITH (SELECT quantileExact(0.9999)(read_bytes) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time    , query_id, query, read_bytes FROM system.query_log WHERE (read_bytes > q) AND (event_time > (now() - toIntervalMinute(10))) LIMIT 1 settings log_queries=0,log_profile_events=0"
+        query: "WITH (SELECT quantileExact(0.9999)(read_bytes) FROM system.query_log WHERE event_time > (now() - toIntervalDay(7))) AS q SELECT event_time    , query_id, query, read_bytes FROM system.query_log WHERE (read_bytes > q) AND (event_time > (now() - toIntervalMinute(10))) ORDER BY read_bytes DESC settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: queries_running_10
-        query: "SELECT value as running_processes FROM (SELECT count(*) AS value FROM system.processes) WHERE value > 10 ORDER BY value DESC LIMIT 1 settings log_queries=0,log_profile_events=0"
+        query: "SELECT value as running_processes FROM (SELECT count(*) AS value FROM system.processes) WHERE value > 10 ORDER BY value DESC settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: qps_9999
-        query: "with (select quantileExact(0.9999)(ProfileEvent_Query) from system.metric_log where event_time > now() -  INTERVAL 7 DAY) as q  select  event_time,  ProfileEvent_Query from system.metric_log where ProfileEvent_Query > q and event_time > now() - INTERVAL  1  MINUTE settings log_queries=0,log_profile_events=0"
+        query: "with (select quantileExact(0.9999)(ProfileEvent_Query) from system.metric_log where event_time > now() -  INTERVAL 7 DAY) as q  select  event_time,  ProfileEvent_Query from system.metric_log where ProfileEvent_Query > q and event_time > now() - INTERVAL  1  MINUTE ORDER BY ProfileEvent_Query DESC settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: running_queries_high
-        query: "WITH (SELECT quantileExact(0.9999)(CurrentMetric_Query) FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q SELECT event_time, CurrentMetric_Query FROM system.metric_log WHERE CurrentMetric_Query > q AND event_time > now() - INTERVAL 1 MINUTE ORDER BY CurrentMetric_Query DESC LIMIT 1 settings log_queries=0,log_profile_events=0"
+        query: "WITH (SELECT quantileExact(0.9999)(CurrentMetric_Query) FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q SELECT event_time, CurrentMetric_Query FROM system.metric_log WHERE CurrentMetric_Query > q AND event_time > now() - INTERVAL 1 MINUTE ORDER BY CurrentMetric_Query DESC settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: query_time_high
-        query: "WITH (SELECT quantileExact(0.9999)(ProfileEvent_QueryTimeMicroseconds) FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q SELECT event_time, ProfileEvent_QueryTimeMicroseconds/1000 as QueryTime FROM system.metric_log WHERE ProfileEvent_QueryTimeMicroseconds > q AND event_time > now() - INTERVAL 1 MINUTE ORDER BY QueryTime DESC LIMIT 1 settings log_queries=0,log_profile_events=0"
+        query: "WITH (SELECT quantileExact(0.9999)(ProfileEvent_QueryTimeMicroseconds) FROM system.metric_log WHERE event_time > now() - INTERVAL 1 MONTH) AS q SELECT event_time, ProfileEvent_QueryTimeMicroseconds/1000 as QueryTime FROM system.metric_log WHERE ProfileEvent_QueryTimeMicroseconds > q AND event_time > now() - INTERVAL 1 MINUTE ORDER BY QueryTime DESC settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: os_wait_high
@@ -136,7 +136,7 @@ receivers:
         query: "SELECT query_id, event_type, merge_algorithm, event_time, `database`, `table`, part_name, part_type, disk_name, `rows`, error, exception, errorCodeToName(error) AS error_code FROM system.part_log WHERE event_time >= (NOW() - (INTERVAL 1 MINUTE)) AND error > 0 and errorCodeToName(error) != 'INSERT_WAS_DEDUPLICATED' SETTINGS log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: mle_value
-        query: "SELECT event_time, ProfileEvent_QueryMemoryLimitExceeded FROM system.metric_log WHERE event_time > now() - INTERVAL 20 Minutes AND ProfileEvent_QueryMemoryLimitExceeded > 0 ORDER BY ProfileEvent_QueryMemoryLimitExceeded DESC LIMIT 1 SETTINGS log_queries=0,log_profile_events=0"
+        query: "SELECT event_time, ProfileEvent_QueryMemoryLimitExceeded FROM system.metric_log WHERE event_time > now() - INTERVAL 20 Minutes AND ProfileEvent_QueryMemoryLimitExceeded > 0 ORDER BY ProfileEvent_QueryMemoryLimitExceeded DESC SETTINGS log_queries=0,log_profile_events=0"
         includeQueryLog: false
       - name: replica_health
         query: "SELECT database, table, is_readonly, is_session_expired, future_parts > 20 future_parts_problem, parts_to_check > 10 check_problem, queue_size > 20 queue_problem, inserts_in_queue > 10 insert_query_problem, merges_in_queue, log_max_index - log_pointer > 10 as log_diff, total_replicas < 2 replica_problem, active_replicas < total_replicas non_active FROM system.replicas WHERE is_readonly OR is_session_expired OR future_parts > 20 OR parts_to_check > 10 OR queue_size > 20 OR inserts_in_queue > 10 OR log_max_index - log_pointer > 10 OR total_replicas < 2 OR active_replicas < total_replicas settings log_queries=0,log_profile_events=0"
