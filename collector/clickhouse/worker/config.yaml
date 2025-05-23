@@ -24,7 +24,7 @@ receivers:
         includeQueryLog: false
 
       - name: failed_mutation
-        query: "SELECT * FROM system.mutations WHERE is_done = 0 AND latest_failed_part != '' AND ((now() - latest_fail_time) < (INTERVAL 1 MINUTE)) settings log_queries=0,log_profile_events=0"
+        query: "SELECT `database`, `table`, mutation_id, command, create_time, parts_to_do, is_done, is_killed, latest_failed_part, latest_fail_time, latest_fail_reason FROM system.mutations WHERE is_done = 0 AND latest_failed_part != '' AND ((now() - latest_fail_time) < (INTERVAL 1 MINUTE)) settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: query_high_execution_time
@@ -156,7 +156,7 @@ receivers:
         includeQueryLog: false
 
       - name: query_running_since_minute
-        query: "SELECT COUNT(*) as running_queries, max(query_id) as query_id FROM system.processes WHERE elapsed >= 60 settings log_queries=0,log_profile_events=0"
+        query: "SELECT COUNT(*) as running_queries, max(query_id) as query_id FROM system.processes WHERE elapsed >= 60 HAVING running_queries > 0 settings log_queries=0,log_profile_events=0"
         includeQueryLog: false
 
       - name: clickhouse_worker_down_10_minutes
