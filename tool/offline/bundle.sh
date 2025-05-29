@@ -513,7 +513,7 @@ main() {
 
     setup_base_dir
 
-    print_info "Pulling and saving Docker images ... "
+    print_info "Pulling and saving Docker images ... \n"
 
     bundle_frontend
     bundle_backend
