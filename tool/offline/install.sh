@@ -366,7 +366,6 @@ run_frontend() {
     print_info "Starting a new container with the latest image ..."
     docker run -d \
         --name $CONTAINER_NAME_FRONTEND \
-        --pull=always \
         --restart=always \
         --memory=${MEMORY_LIMIT_MB}m \
         --network host \
