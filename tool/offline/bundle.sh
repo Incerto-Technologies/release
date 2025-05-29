@@ -204,7 +204,7 @@ install_aws_cli() {
         return 1
     fi
     # install aws-cli directly via binary
-    install_aws_cli_directly() {
+    install_aws_cli_direct() {
         if curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; then
             printf "[INFO] Download completed. Extracting ... \n"
             if unzip awscliv2.zip; then
