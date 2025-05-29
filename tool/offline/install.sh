@@ -276,7 +276,7 @@ extract_images() {
         print_info "Backing up existing .tar and .json files ... "
         
         # remove and create a backup directory
-        BACKUP_DIRECTORY="$EXTRACT_DIRECTORY/backup"
+        BACKUP_DIRECTORY="$EXTRACT_DIRECTORY/.backup"
         rm -rf "$BACKUP_DIRECTORY"
         mkdir -p "$BACKUP_DIRECTORY"
         
@@ -373,7 +373,7 @@ run_frontend() {
         --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/app/dist/config.json:rw \
         $IMAGE_NAME_FRONTEND
-    printf "\n                      Frontend service is up and running.                      \n"
+    printf "\n                      Frontend service is up and running.                      \n\n"
 }
 
 # setup and run backend service
@@ -432,7 +432,7 @@ run_backend() {
         -v backend_config_rbac:/app/src/config/rbac:rw \
         -v $(pwd)/backend/logs:/app/src/logs:rw \
         $IMAGE_NAME_BACKEND
-    printf "\n                      Backend service is up and running.                      \n"
+    printf "\n                      Backend service is up and running.                      \n\n"
 }
 
 # setup and run AI service
@@ -487,7 +487,7 @@ run_ai() {
         --env-file $(pwd)/ai/.env \
         -v $(pwd)/ai/logs:/app/logs:rw \
         $IMAGE_NAME_AI
-    printf "\n                      AI service is up and running.                      \n"
+    printf "\n                      AI service is up and running.                      \n\n"
 }
 
 # function to show container status
