@@ -91,7 +91,8 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-print_info "Proceeding with using \n\n    env: $ENV \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n\n"
+print_info "Proceeding with using\n"
+printf "\n    env: $ENV \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n\n"
 
 # install helper tools
 install_helper_tools() {
