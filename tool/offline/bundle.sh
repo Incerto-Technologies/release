@@ -267,15 +267,17 @@ install_docker_rhel() {
             sudo systemctl enable docker
             printf "[SUCCESS] Docker installed on Amazon Linux 2023.\n"
             return
-        else
-            printf "[INFO] Detected RHEL. Installing Docker for RHEL ...\n"
-            sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc
+        elif [ "$ID" = "rhel" ]; then
+            printf "[INFO] Detected Red Hat. Installing Docker for Red Hat ...\n"
             sudo dnf -y install dnf-plugins-core
             sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-            sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
             sudo systemctl enable --now docker
-            printf "[SUCCESS] Docker installed on RHEL.\n"
+            printf "[SUCCESS] Docker installed on Red Hat.\n"
             return
+        else
+            printf "[ERROR] Unsupported Linux distribution: $ID\n"
+            return 1
         fi
     fi
 }
@@ -297,8 +299,8 @@ install_docker() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
-            ubuntu) install_docker_ubuntu ;;
-            rhel | centos | amzn) install_docker_rhel ;;
+            ubuntu|debian) install_docker_ubuntu ;;
+            centos|rhel|fedora|amazon|amzn)) install_docker_rhel ;;
             *)
                 printf "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported.\n"
                 exit 1
