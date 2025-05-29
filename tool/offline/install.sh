@@ -240,13 +240,13 @@ install_docker() {
 check_docker_permissions() {
     print_info "Checking Docker permissions for the current user ..."
     if groups $USER | grep -q '\bdocker\b'; then
-        print_info "User \`$USER\` already has access to Docker without sudo."
+        print_info "User \`$USER\` already has access to Docker without sudo.\n"
     else
         print_info "User \`$USER\` does not have access to Docker without sudo."
         print_info "Adding user \`$USER\` to the \`docker\` group ..."
         sudo usermod -aG docker $USER
         print_info "User \`$USER\` added to the \`docker\` group."
-        print_success "User added to Docker group. Please logout and log back in. And run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+        print_success "User added to Docker group. Please logout and log back in. And run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE \n"
         exit 0
     fi
 }
