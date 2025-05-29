@@ -261,7 +261,7 @@ install_docker_rhel() {
             return
         elif [ "$ID" = "amzn" ] && [ "$VERSION_ID" = "2023" ]; then
             printf "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023 ...\n"
-            sudo yum update -y
+            sudo dnf update -y
             sudo dnf install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
@@ -269,7 +269,7 @@ install_docker_rhel() {
             return
         elif [ "$ID" = "rhel" ] || [ "$ID" = "centos" ]; then
             printf "[INFO] Detected Red Hat. Installing Docker for RedHat/CentOS ...\n"
-            sudo yum update -y
+            sudo dnf update -y
             sudo dnf -y install dnf-plugins-core
             sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
             sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
