@@ -457,20 +457,11 @@ setup_base_dir
 
 printf "[INFO] Pulling and saving Docker images ... \n"
 
-if [ "$INCERTO_FRONTEND" = "true" ]; then
-  bundle_frontend
-fi
-
-if [ "$INCERTO_BACKEND" = "true" ]; then
-  bundle_backend
-fi
-
-if [ "$INCERTO_AI" = "true" ]; then
-  bundle_ai
-fi
+bundle_frontend
+bundle_backend
+bundle_ai
 
 create_info_json
-
 create_zip
 
 docker_cleanup
