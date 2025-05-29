@@ -436,14 +436,13 @@ EOF
 }
 
 create_zip() {
-    if zip -r ~/incerto.zip ~/incerto; then
+    if  zip -r incerto.zip incerto; then
         printf "[SUCCESS] Created complete "incerto.zip" bundle \n\n"
         return 0
     else
         printf "[ERROR] Failed to create bundle \n\n"
         return 1
     fi
-    
 }
 
 install_helper_tools
