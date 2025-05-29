@@ -241,7 +241,7 @@ install_docker_ubuntu() {
     sudo apt-get install -y docker-ce
     sudo systemctl enable docker
     sudo systemctl start docker
-    printf "[SUCCESS] Docker installed successfully on UBUNTU.\n"
+    printf "[SUCCESS] Docker installed successfully on Ubuntu.\n"
 }
 
 # function to install Docker on RHEL
