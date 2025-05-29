@@ -418,7 +418,7 @@ bundle_ai() {
 create_info_json() {
     printf "[INFO] Creating info.json ... \n"
     VERSION=$(date +"%Y%m%d_%H%M%S")
-    cat > "$HOME/incerto/info.json" << EOF
+    CONTENT=$(cat << EOF
     {
         "version": "$VERSION",
         "environment": "$ENV",
@@ -426,19 +426,21 @@ create_info_json() {
         "images": [
             "$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND:$(docker inspect --format='{{index .RepoDigests 0}}' "$ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND" | cut -d@ -f2)",
             "$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND:$(docker inspect --format='{{index .RepoDigests 0}}' "$ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND" | cut -d@ -f2)",
-            "$IMAGE_NAME_AI:$IMAGE_TAG_AI:$(docker inspect --format='{{index .RepoDigests 0}}' "$ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI" | cut -d@ -f2)",
+            "$IMAGE_NAME_AI:$IMAGE_TAG_AI:$(docker inspect --format='{{index .RepoDigests 0}}' "$ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI" | cut -d@ -f2)"
         ]
     }
 EOF
-    printf "[SUCCESS] Saved info.json \n\n"
+)
+    echo "$CONTENT" | tee "$HOME/incerto/info.json"
+    printf "\n[SUCCESS] Saved info.json \n\n"
 }
 
 create_zip() {
     if zip -r ~/incerto.zip ~/incerto; then
-        printf "[SUCCESS] Created complete "incerto.zip" bundle \n"
+        printf "[SUCCESS] Created complete "incerto.zip" bundle \n\n"
         return 0
     else
-        printf "[ERROR] Failed to create bundle \n"
+        printf "[ERROR] Failed to create bundle \n\n"
         return 1
     fi
     
