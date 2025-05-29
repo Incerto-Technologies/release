@@ -48,14 +48,14 @@ while [ $# -gt 0 ]; do
         --env)
             ENV="$2"
             if [ -z "$ENV" ]; then
-                print_info "Missing value for --env. Defaulting to 'prod'. Accepted values: 'dev' or 'prod'. \n"
+                print_info "Missing value for --env. Defaulting to 'prod'. Accepted values: 'dev' or 'prod'. "
             fi
             shift 2
             ;;
          --frontend)
             INCERTO_FRONTEND="$2"
             if [ -z "$INCERTO_FRONTEND" ]; then
-                print_error "Missing value for --frontend. Please provide a true or false.\n"
+                print_error "Missing value for --frontend. Please provide a true or false."
                 exit 1
             fi
             shift 2
@@ -63,7 +63,7 @@ while [ $# -gt 0 ]; do
         --backend)
             INCERTO_BACKEND="$2"
             if [ -z "$INCERTO_BACKEND" ]; then
-                print_error "Missing value for --backend. Please provide a true or false.\n"
+                print_error "Missing value for --backend. Please provide a true or false."
                 exit 1
             fi
             shift 2
@@ -71,7 +71,7 @@ while [ $# -gt 0 ]; do
         --ai)
             INCERTO_AI="$2"
             if [ -z "$INCERTO_AI" ]; then
-                print_error "Missing value for --ai. Please provide a true or false.\n"
+                print_error "Missing value for --ai. Please provide a true or false."
                 exit 1
             fi
             shift 2
@@ -79,41 +79,41 @@ while [ $# -gt 0 ]; do
         --domain)
             DOMAIN="$2"
             if [ -z "$DOMAIN" ]; then
-                print_error "Missing value for --domain. Please provide a valid domain value like utility.incerto.in.\n"
+                print_error "Missing value for --domain. Please provide a valid domain value like utility.incerto.in."
                 exit 1
             fi
             shift 2
             ;;
         *)
-            print_error "Unknown option: $1\n"
+            print_error "Unknown option: $1"
             exit 1
             ;;
     esac
 done
 
-print_info "Proceeding with using\n"
-printf "\n    env: $ENV \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n\n"
+print_info "Proceeding with using"
+printf "\n    env: $ENV \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n"
 
 # install helper tools
 install_helper_tools() {
     # need zip unzip
     if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
-        print_info "zip and unzip are already installed on this machine.\n\n"
+        print_info "zip and unzip are already installed on this machine.\n"
         return 0
     fi
-    print_info "Installing helper tools ... \n"
+    print_info "Installing helper tools ... "
     
     # detect OS and install accordingly
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
             ubuntu|debian) 
-                print_info "Detected Ubuntu/Debian. Installing via apt ...\n"
+                print_info "Detected Ubuntu/Debian. Installing via apt ..."
                 sudo apt update -y
                 sudo apt install -y zip unzip
                 ;;
             centos|rhel|fedora|amazon|amzn)
-                print_info "Detected RHEL-based system. Installing via direct download ...\n"
+                print_info "Detected RHEL-based system. Installing via direct download ..."
                 if command -v dnf &> /dev/null; then
                     # Use dnf for newer RHEL/Fedora systems
                     sudo dnf install -y zip unzip
@@ -121,33 +121,33 @@ install_helper_tools() {
                     # Use yum for older RHEL/CentOS systems
                     sudo yum install -y zip unzip
                 else
-                    print_error "No package manager (dnf/yum) found.\n"
+                    print_error "No package manager (dnf/yum) found."
                     return 1
                 fi
                 ;;
             *) 
-                print_error "Unsupported Linux distribution: $ID\n"
+                print_error "Unsupported Linux distribution: $ID"
                 return 1
                 ;;
         esac
     else
-        print_error "OS detection failed. Unable to proceed.\n"
+        print_error "OS detection failed. Unable to proceed."
         exit 1
     fi
     
     # Verify installation was successful
     if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
-        print_success "AWS CLI successfully installed!\n"
+        print_success "AWS CLI successfully installed!"
         return 0
     else
-        print_error "AWS CLI installation failed. Command not found after installation.\n"
+        print_error "AWS CLI installation failed. Command not found after installation."
         return 1
     fi
 }
 
 # function to install Docker on Ubuntu/Debian
 install_docker_ubuntu() {
-    print_info "Installing Docker on Ubuntu ...\n"
+    print_info "Installing Docker on Ubuntu ..."
     sudo apt-get update -y
     sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
     if [ -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
@@ -159,44 +159,44 @@ install_docker_ubuntu() {
     sudo apt-get install -y docker-ce
     sudo systemctl enable docker
     sudo systemctl start docker
-    print_success "Docker installed successfully on Ubuntu.\n"
+    print_success "Docker installed successfully on Ubuntu."
 }
 
 # function to install Docker on RHEL
 install_docker_rhel() {
-    print_info "Installing Docker on RHEL ...\n"
+    print_info "Installing Docker on RHEL ..."
     # Check for Amazon Linux version
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         if [ "$ID" = "amzn" ] && [ "$VERSION_ID" = "2" ]; then
-            print_info "Detected Amazon Linux 2. Installing Docker for Amazon Linux 2 ...\n"
+            print_info "Detected Amazon Linux 2. Installing Docker for Amazon Linux 2 ..."
             sudo yum update -y
             sudo amazon-linux-extras enable docker
             sudo yum install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
-            print_success "Docker installed on Amazon Linux 2.\n"
+            print_success "Docker installed on Amazon Linux 2."
             return
         elif [ "$ID" = "amzn" ] && [ "$VERSION_ID" = "2023" ]; then
-            print_info "Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023 ...\n"
+            print_info "Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023 ..."
             sudo dnf update -y
             sudo dnf install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
-            print_success "Docker installed on Amazon Linux 2023.\n"
+            print_success "Docker installed on Amazon Linux 2023."
             return
         elif [ "$ID" = "rhel" ]; then
-            print_info "Detected Red Hat. Installing Docker for RedHat ...\n"
+            print_info "Detected Red Hat. Installing Docker for RedHat ..."
             sudo dnf update -y
             sudo dnf install -y dnf-plugins-core yum-utils device-mapper-persistent-data lvm2
             sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
             sudo dnf install -y docker-ce docker-ce-cli containerd.io
             sudo systemctl start docker
             sudo systemctl enable docker
-            print_success "Docker installed on RedHat.\n"
+            print_success "Docker installed on RedHat."
             return
         else
-            print_error "Unsupported Linux distribution: $ID\n"
+            print_error "Unsupported Linux distribution: $ID"
             return 1
         fi
     fi
@@ -204,7 +204,7 @@ install_docker_rhel() {
 
 # after installation: set up Docker group and permissions
 configure_docker_post_install() {
-    print_info "Configuring Docker group and permissions ...\n"
+    print_info "Configuring Docker group and permissions ..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
     print_success "Docker group configured. Please logout and log back in.\n And run the same command."
@@ -213,7 +213,7 @@ configure_docker_post_install() {
 # check and install Docker
 install_docker() {
     if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
-        print_info "Docker is already installed on this machine.\n\n"
+        print_info "Docker is already installed on this machine.\n"
         return 0
     fi
     
@@ -223,7 +223,7 @@ install_docker() {
             ubuntu|debian) install_docker_ubuntu ;;
             centos|rhel|fedora|amazon|amzn) install_docker_rhel ;;
             *)
-                print_error "Unsupported operating system. Only Ubuntu and RHEL are supported.\n"
+                print_error "Unsupported operating system. Only Ubuntu and RHEL are supported."
                 exit 1
                 ;;
         esac
@@ -231,21 +231,21 @@ install_docker() {
         configure_docker_post_install
         exit 0
     else
-        print_error "OS detection failed. Unable to proceed.\n"
+        print_error "OS detection failed. Unable to proceed."
         exit 1
     fi
 }
 
 # check Docker permission
 check_docker_permissions() {
-    print_info "Checking Docker permissions for the current user ...\n"
+    print_info "Checking Docker permissions for the current user ..."
     if groups $USER | grep -q '\bdocker\b'; then
-        print_info "User \`$USER\` already has access to Docker without sudo.\n"
+        print_info "User \`$USER\` already has access to Docker without sudo."
     else
-        print_info "User \`$USER\` does not have access to Docker without sudo.\n"
-        print_info "Adding user \`$USER\` to the \`docker\` group ...\n"
+        print_info "User \`$USER\` does not have access to Docker without sudo."
+        print_info "Adding user \`$USER\` to the \`docker\` group ..."
         sudo usermod -aG docker $USER
-        print_info "User \`$USER\` added to the \`docker\` group.\n"
+        print_info "User \`$USER\` added to the \`docker\` group."
         print_success "User added to Docker group. Please logout and log back in.\n And run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
         exit 0
     fi
@@ -264,16 +264,16 @@ setup_base_dir() {
 
 # function to extract zip file
 extract_images() {
-    print_info "Checking for incerto.zip file ... \n"
+    print_info "Checking for incerto.zip file ... "
     if [ ! -f "$ZIP_FILE" ]; then
         print_error "File $ZIP_FILE not found!"
         exit 1
     fi
     
-    print_info "Preparing extraction directory ... \n"
+    print_info "Preparing extraction directory ... "
     if [ -d "$EXTRACT_DIRECTORY" ]; then
         print_info "Directory $EXTRACT_DIRECTORY already exists"
-        print_info "Backing up existing .tar and .json files ... \n"
+        print_info "Backing up existing .tar and .json files ... "
         
         # Create backup directory with timestamp
         BACKUP_DIRECTORY="$EXTRACT_DIRECTORY/backup_$(date +%Y%m%d_%H%M%S)"
@@ -289,28 +289,28 @@ extract_images() {
         mkdir -p "$EXTRACT_DIRECTORY"
     fi
     
-    print_info "Extracting incerto.zip ... \n"
-    unzip -o "$ZIP_FILE" -d "$$HOME"
-    print_success "Extraction completed \n"
+    print_info "Extracting incerto.zip ... "
+    unzip -o "$ZIP_FILE" -d "$HOME"
+    print_success "Extraction completed "
 }
 
 # function to load Docker images
 load_images() {
-    print_info "Loading Docker images from .tar files ... \n"
+    print_info "Loading Docker images from .tar files ... "
     
     cd "$EXTRACT_DIRECTORY"
       
-    print_info "Loading Frontend service image ... \n"
+    print_info "Loading Frontend service image ... "
     IMAGE_NAME_FRONTEND=$(docker load -i frontend-prod.tar | grep "Loaded image:" | awk '{print $3}')
-    print_success "Frontend image loaded: $IMAGE_NAME_FRONTEND \n"
+    print_success "Frontend image loaded: $IMAGE_NAME_FRONTEND "
     
-    print_info "Loading Backend service image ... \n"
+    print_info "Loading Backend service image ... "
     IMAGE_NAME_BACKEND=$(docker load -i backend-prod.tar | grep "Loaded image:" | awk '{print $3}')
-    print_success "Backend image loaded: $IMAGE_NAME_BACKEND \n"
+    print_success "Backend image loaded: $IMAGE_NAME_BACKEND "
 
-    print_info "Loading AI service image ... \n"
+    print_info "Loading AI service image ... "
     IMAGE_NAME_AI=$(docker load -i ai-prod.tar | grep "Loaded image:" | awk '{print $3}')
-    print_success "AI image loaded: $IMAGE_NAME_AI \n"
+    print_success "AI image loaded: $IMAGE_NAME_AI "
 }
 
 # setup and run frontend service
@@ -325,35 +325,35 @@ run_frontend() {
     # ensure required directories exist
     for dir in "${REQUIRED_DIRS[@]}"; do
         if [ ! -d "$dir" ]; then
-            print_info "Creating missing directory: $dir\n"
+            print_info "Creating missing directory: $dir"
             mkdir -p "$dir"
         fi
     done
     # ensure required files exist
     for file in "${REQUIRED_FILES[@]}"; do
         if [ ! -f "$file" ]; then
-            print_info "Required file missing: $file\n"
+            print_info "Required file missing: $file"
             touch "$file"
-            print_info "Created the missing file: $file\n"
+            print_info "Created the missing file: $file"
         fi
     done
     # stop and remove the existing container if it exists
     if [ "$(docker ps -aq -f name=$CONTAINER_NAME_FRONTEND)" ]; then
-        print_info "A container with the name $CONTAINER_NAME_FRONTEND already exists. Removing it ...\n"
+        print_info "A container with the name $CONTAINER_NAME_FRONTEND already exists. Removing it ..."
         docker rm -f $CONTAINER_NAME_FRONTEND
-        print_success "Existing container removed.\n"
+        print_success "Existing container removed."
     else
-        print_info "No existing container with the name $CONTAINER_NAME_FRONTEND found.\n"
+        print_info "No existing container with the name $CONTAINER_NAME_FRONTEND found."
     fi
 
     # set up memory limits
     MEMORY_LIMIT_PERCENTAGE=40
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    print_info "Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    print_info "Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
-    print_info "Starting a new container with the latest image ...\n"
+    print_info "Starting a new container with the latest image ..."
     docker run -d \
         --name $CONTAINER_NAME_FRONTEND \
         --pull=always \
@@ -363,7 +363,7 @@ run_frontend() {
         --env-file $(pwd)/frontend/.env \
         -v $(pwd)/frontend/config.json:/app/dist/config.json:rw \
         $IMAGE_NAME_FRONTEND
-    printf "\n                      Frontend service is up and running.                      \n\n"
+    printf "\n                      Frontend service is up and running.                      \n"
 }
 
 # setup and run backend service
@@ -378,38 +378,38 @@ run_backend() {
     # ensure required directories exist
     for dir in "${REQUIRED_DIRS[@]}"; do
         if [ ! -d "$dir" ]; then
-            print_info "Creating missing directory: $dir\n"
+            print_info "Creating missing directory: $dir"
             mkdir -p "$dir"
         fi
     done
     # ensure required files exist
     for file in "${REQUIRED_FILES[@]}"; do
         if [ ! -f "$file" ]; then
-            print_info "Required file missing: $file\n"
+            print_info "Required file missing: $file"
             touch "$file"
-            print_info "Created the missing file: $file\n"
+            print_info "Created the missing file: $file"
         fi
     done
     # stop and remove the existing container if it exists
     if [ "$(docker ps -aq -f name=$CONTAINER_NAME_BACKEND)" ]; then
-        print_info "A container with the name $CONTAINER_NAME_BACKEND already exists. Removing it ...\n"
+        print_info "A container with the name $CONTAINER_NAME_BACKEND already exists. Removing it ..."
         docker rm -f $CONTAINER_NAME_BACKEND
-        print_success "Existing container removed.\n"
+        print_success "Existing container removed."
     else
-        print_info "No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
+        print_info "No existing container with the name $CONTAINER_NAME_BACKEND found."
     fi
     # change permissions
-    print_info "Change permissions for $(pwd)/backend/logs as it is read-write\n"
+    print_info "Change permissions for $(pwd)/backend/logs as it is read-write"
     sudo chmod -R 777 $(pwd)/backend/logs
     
     # set up memory limits
     MEMORY_LIMIT_PERCENTAGE=50
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    print_info "Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    print_info "Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
-    print_info "Starting a new container with the latest image ...\n"
+    print_info "Starting a new container with the latest image ..."
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
         --pull=always \
@@ -423,7 +423,7 @@ run_backend() {
         -v backend_config_rbac:/app/src/config/rbac:rw \
         -v $(pwd)/backend/logs:/app/src/logs:rw \
         $IMAGE_NAME_BACKEND
-    printf "\n                      Backend service is up and running.                      \n\n"
+    printf "\n                      Backend service is up and running.                      \n"
 }
 
 # setup and run AI service
@@ -438,38 +438,38 @@ run_ai() {
     # ensure required directories exist
     for dir in "${REQUIRED_DIRS[@]}"; do
         if [ ! -d "$dir" ]; then
-            print_info "Creating missing directory: $dir\n"
+            print_info "Creating missing directory: $dir"
             mkdir -p "$dir"
         fi
     done
     # ensure required files exist
     for file in "${REQUIRED_FILES[@]}"; do
         if [ ! -f "$file" ]; then
-            print_info "Required file missing: $file\n"
+            print_info "Required file missing: $file"
             touch "$file"
-            print_info "Created the missing file: $file\n"
+            print_info "Created the missing file: $file"
         fi
     done
     # stop and remove the existing container if it exists
     if [ "$(docker ps -aq -f name=$CONTAINER_NAME_AI)" ]; then
-        print_info "A container with the name $CONTAINER_NAME_AI already exists. Removing it ...\n"
+        print_info "A container with the name $CONTAINER_NAME_AI already exists. Removing it ..."
         docker rm -f $CONTAINER_NAME_AI
-        print_success "Existing container removed.\n"
+        print_success "Existing container removed."
     else
-        print_info "No existing container with the name $CONTAINER_NAME_AI found.\n"
+        print_info "No existing container with the name $CONTAINER_NAME_AI found."
     fi
     # change permissions
-    print_info "Change permissions for $(pwd)/ai/logs as it is read-write\n"
+    print_info "Change permissions for $(pwd)/ai/logs as it is read-write"
     sudo chmod -R 777 $(pwd)/ai/logs
     
     # set up memory limits
     MEMORY_LIMIT_PERCENTAGE=50
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    print_info "Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    print_info "Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
-    print_info "Starting a new container with the latest image...\n"
+    print_info "Starting a new container with the latest image..."
     docker run -d \
         --name $CONTAINER_NAME_AI \
         --pull=always \
@@ -479,14 +479,14 @@ run_ai() {
         --env-file $(pwd)/ai/.env \
         -v $(pwd)/ai/logs:/app/logs:rw \
         $IMAGE_NAME_AI
-    printf "\n                      AI service is up and running.                      \n\n"
+    printf "\n                      AI service is up and running.                      \n"
 }
 
 # function to show container status
 show_status() {
-    print_info "Container Status \n"
+    print_info "Container Status "
     docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Command}}\t{{.Status}}\t{{.RunningFor}}\t{{.Ports}}\t{{.Size}}"
-    printf "\n"
+    printf ""
 }
 
 main() {
@@ -520,16 +520,16 @@ main() {
 
 main "$@"
 
-printf "\n************************************************************************\n"
-printf "                                                                        \n"
-printf "d888888b   d8b   db    .o88b.   d88888b   d8888b.   d888888b    .d88b.  \n"
-printf "   88      888o  88   d8P  Y8   88        88   8D    ~~88~~    .8P  Y8. \n"
-printf "   88      88V8o 88   8P        88ooooo   88oobY       88      88    88 \n"
-printf "   88      88 V8o88   8b        88~~~~~   88 8b        88      88    88 \n"
-printf "  .88.     88  V888   Y8b  d8   88.       88  88.      88       8b  d8  \n"
-printf "Y888888P   VP   V8P     Y88P    Y88888P   88   YD      YP        Y88P   \n"
-printf "                                                                        \n"
-printf "                      Incerto Technologies Pvt Ltd                      \n"
-printf "                           https://incerto.in                           \n"
-printf "                                                                        \n"
-printf "************************************************************************\n"
+printf "\n************************************************************************"
+printf "                                                                        "
+printf "d888888b   d8b   db    .o88b.   d88888b   d8888b.   d888888b    .d88b.  "
+printf "   88      888o  88   d8P  Y8   88        88   8D    ~~88~~    .8P  Y8. "
+printf "   88      88V8o 88   8P        88ooooo   88oobY       88      88    88 "
+printf "   88      88 V8o88   8b        88~~~~~   88 8b        88      88    88 "
+printf "  .88.     88  V888   Y8b  d8   88.       88  88.      88       8b  d8  "
+printf "Y888888P   VP   V8P     Y88P    Y88888P   88   YD      YP        Y88P   "
+printf "                                                                        "
+printf "                      Incerto Technologies Pvt Ltd                      "
+printf "                           https://incerto.in                           "
+printf "                                                                        "
+printf "************************************************************************"
