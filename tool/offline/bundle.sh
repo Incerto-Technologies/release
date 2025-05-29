@@ -227,7 +227,7 @@ install_aws_cli() {
     fi
 }
 
-# function to install Docker on Ubuntu
+# function to install Docker on Ubuntu/Debian
 install_docker_ubuntu() {
     printf "[INFO] Installing Docker on Ubuntu ...\n"
     sudo apt-get update -y
