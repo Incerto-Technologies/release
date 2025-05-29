@@ -172,6 +172,28 @@ install_aws_cli() {
         printf "[INFO] AWS CLI is already installed on this machine.\n\n"
         return 0
     fi
+    # install aws-cli directly via binary
+    install_aws_cli_direct() {
+        if curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; then
+            printf "[INFO] Download completed. Extracting ... \n"
+            if unzip awscliv2.zip; then
+                printf "[INFO] Installing AWS CLI ... \n"
+                if sudo ./aws/install; then
+                    printf "[INFO] Installation completed.\n"
+                    return 0
+                else
+                    printf "[ERROR] Installation failed.\n"
+                    return 1
+                fi
+            else
+                printf "[ERROR] Failed to extract awscliv2.zip\n"
+                return 1
+            fi
+        else
+            printf "[ERROR] Failed to download AWS CLI.\n"
+            return 1
+        fi
+    }
     # detect OS and install accordingly
     if [ -f /etc/os-release ]; then
         . /etc/os-release
@@ -203,28 +225,6 @@ install_aws_cli() {
         printf "[ERROR] AWS CLI installation failed. Command not found after installation.\n"
         return 1
     fi
-    # install aws-cli directly via binary
-    install_aws_cli_direct() {
-        if curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; then
-            printf "[INFO] Download completed. Extracting ... \n"
-            if unzip awscliv2.zip; then
-                printf "[INFO] Installing AWS CLI ... \n"
-                if sudo ./aws/install; then
-                    printf "[INFO] Installation completed.\n"
-                    return 0
-                else
-                    printf "[ERROR] Installation failed.\n"
-                    return 1
-                fi
-            else
-                printf "[ERROR] Failed to extract awscliv2.zip\n"
-                return 1
-            fi
-        else
-            printf "[ERROR] Failed to download AWS CLI.\n"
-            return 1
-        fi
-    }
 }
 
 # function to install Docker on Ubuntu
