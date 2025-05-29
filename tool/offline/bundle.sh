@@ -384,6 +384,7 @@ setup_base_dir() {
     cd "$HOME" || { printf "[ERROR] Failed to cd to home directory"; exit 1; }
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
     rm -f *.tar
+    rm -f *.json
 }
 
 # bundle Frontend service
@@ -431,6 +432,17 @@ EOF
     printf "[SUCCESS] Saved info.json \n\n"
 }
 
+create_zip() {
+    if zip -r ~/incerto.zip ~/incerto; then
+        printf "[SUCCESS] Created complete "incerto.zip" bundle \n"
+        return 0
+    else
+        printf "[ERROR] Failed to create bundle \n"
+        return 1
+    fi
+    
+}
+
 install_helper_tools
 
 install_aws_cli
@@ -458,6 +470,8 @@ if [ "$INCERTO_AI" = "true" ]; then
 fi
 
 create_info_json
+
+create_zip
 
 docker_cleanup
 
