@@ -385,6 +385,7 @@ setup_base_dir() {
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
     rm -f *.tar
     rm -f *.json
+    printf "[INFO] Removed old *.tar and *.json \n\n"
 }
 
 # bundle Frontend service
