@@ -13,18 +13,21 @@ ECR_URL_FRONTEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com"
 IMAGE_NAME_FRONTEND="incerto/frontend"
 IMAGE_TAG_FRONTEND="prod"
 CONTAINER_NAME_FRONTEND="incerto-frontend"
+INCERTO_FRONTEND="true"
 
 # backend service
 ECR_URL_BACKEND="434499855633.dkr.ecr.ap-south-1.amazonaws.com"
 IMAGE_NAME_BACKEND="incerto/backend"
 IMAGE_TAG_BACKEND="prod"
 CONTAINER_NAME_BACKEND="incerto-backend"
+INCERTO_BACKEND="true"
 
 # ai service
 ECR_URL_AI="434499855633.dkr.ecr.ap-south-1.amazonaws.com"
 IMAGE_NAME_AI="incerto/ai"
 IMAGE_TAG_AI="prod"
 CONTAINER_NAME_AI="incerto-ai"
+INCERTO_AI="true"
 
 # env
 ENV="prod"
@@ -62,6 +65,30 @@ while [ $# -gt 0 ]; do
             fi
             shift 2
             ;;
+        --frontend)
+            INCERTO_FRONTEND="$2"
+            if [ -z "$INCERTO_FRONTEND" ]; then
+                printf "[ERROR] Missing value for --frontend. Please provide a true or false.\n"
+                exit 1
+            fi
+            shift 2
+            ;;
+        --backend)
+            INCERTO_BACKEND="$2"
+            if [ -z "$INCERTO_BACKEND" ]; then
+                printf "[ERROR] Missing value for --backend. Please provide a true or false.\n"
+                exit 1
+            fi
+            shift 2
+            ;;
+        --ai)
+            INCERTO_AI="$2"
+            if [ -z "$INCERTO_AI" ]; then
+                printf "[ERROR] Missing value for --ai. Please provide a true or false.\n"
+                exit 1
+            fi
+            shift 2
+            ;;
         --domain)
             DOMAIN="$2"
             if [ -z "$DOMAIN" ]; then
@@ -77,7 +104,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-printf "\n[INFO] Proceeding with using \n\n    env: $ENV \n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    domain: $DOMAIN\n\n"
+printf "\n[INFO] Proceeding with using \n\n    env: $ENV \n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n\n"
 
 # Update image tags based on the ENV value
 if [ "$ENV" = "dev" ]; then
@@ -264,179 +291,38 @@ setup_ecr() {
     fi
 }
 
-# setup base directories
+# setup base directories & remove old `.tar` files
 setup_base_dir() {
     cd "$HOME" || { printf "[ERROR] Failed to cd to home directory"; exit 1; }
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
+    rm -f *.tar
 }
 
-# setup and run Frontend service
-run_frontend() {
-    REQUIRED_DIRS=(
-        "$(pwd)/frontend"
-    )
-    REQUIRED_FILES=(
-        "$(pwd)/frontend/.env"
-        "$(pwd)/frontend/config.json"
-    )
-    # ensure required directories exist
-    for dir in "${REQUIRED_DIRS[@]}"; do
-        if [ ! -d "$dir" ]; then
-            printf "[INFO] Creating missing directory: $dir\n"
-            mkdir -p "$dir"
-        fi
-    done
-    # ensure required files exist
-    for file in "${REQUIRED_FILES[@]}"; do
-        if [ ! -f "$file" ]; then
-            printf "[INFO] Required file missing: $file\n"
-            touch "$file"
-            printf "[INFO] Created the missing file: $file\n"
-        fi
-    done
-    # stop and remove the existing container if it exists
-    if [ "$(docker ps -aq -f name=$CONTAINER_NAME_FRONTEND)" ]; then
-        printf "[INFO] A container with the name $CONTAINER_NAME_FRONTEND already exists. Removing it ...\n"
-        docker rm -f $CONTAINER_NAME_FRONTEND
-        printf "[SUCCESS] Existing container removed.\n"
-    else
-        printf "[INFO] No existing container with the name $CONTAINER_NAME_FRONTEND found.\n"
-    fi
-
-    # set up memory limits
-    MEMORY_LIMIT_PERCENTAGE=40
-    MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
-    MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
-    
-    # run the new container
-    printf "[INFO] Starting a new container with the latest image ...\n"
-    docker run -d \
-        --name $CONTAINER_NAME_FRONTEND \
-        --pull=always \
-        --restart=always \
-        --memory=${MEMORY_LIMIT_MB}m \
-        --network host \
-        --env-file $(pwd)/frontend/.env \
-        -v $(pwd)/frontend/config.json:/app/dist/config.json:rw \
-        $ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND
-    printf "\n                      Frontend service is up and running.                      \n\n"
+# bundle Frontend service
+bundle_frontend() {
+    # pulling and saving latest image
+    printf "[INFO] Pulling frontend image ... \n"
+    docker pull "$ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND"
+    docker save -o "$HOME/incerto/frontend-$IMAGE_TAG_FRONTEND.tar" "$ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND"
+    printf "\n                      Pulled and saved incerto-frontend image.                      \n\n"
 }
 
-# setup and run Backend service
-run_backend() {
-    REQUIRED_DIRS=(
-        "$(pwd)/backend"
-        "$(pwd)/backend/logs"
-    )
-    REQUIRED_FILES=(
-        "$(pwd)/backend/.env"
-    )
-    # ensure required directories exist
-    for dir in "${REQUIRED_DIRS[@]}"; do
-        if [ ! -d "$dir" ]; then
-            printf "[INFO] Creating missing directory: $dir\n"
-            mkdir -p "$dir"
-        fi
-    done
-    # ensure required files exist
-    for file in "${REQUIRED_FILES[@]}"; do
-        if [ ! -f "$file" ]; then
-            printf "[INFO] Required file missing: $file\n"
-            touch "$file"
-            printf "[INFO] Created the missing file: $file\n"
-        fi
-    done
-    # stop and remove the existing container if it exists
-    if [ "$(docker ps -aq -f name=$CONTAINER_NAME_BACKEND)" ]; then
-        printf "[INFO] A container with the name $CONTAINER_NAME_BACKEND already exists. Removing it ...\n"
-        docker rm -f $CONTAINER_NAME_BACKEND
-        printf "[SUCCESS] Existing container removed.\n"
-    else
-        printf "[INFO] No existing container with the name $CONTAINER_NAME_BACKEND found.\n"
-    fi
-    # change permissions
-    printf "[INFO] Change permissions for $(pwd)/backend/logs as it is read-write\n"
-    sudo chmod -R 777 $(pwd)/backend/logs
-    
-    # set up memory limits
-    MEMORY_LIMIT_PERCENTAGE=50
-    MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
-    MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
-    
-    # run the new container
-    printf "[INFO] Starting a new container with the latest image ...\n"
-    docker run -d \
-        --name $CONTAINER_NAME_BACKEND \
-        --pull=always \
-        --restart=always \
-        --memory=${MEMORY_LIMIT_MB}m \
-        --network host \
-        --env-file $(pwd)/backend/.env \
-        -v backend_resource_scripts_all:/app/src/resource/scripts/all:rw \
-        -v backend_resource_pem:/app/src/resource/pem:rw \
-        -v backend_resource_source:/app/src/resource/source:rw \
-        -v backend_config_rbac:/app/src/config/rbac:rw \
-        -v $(pwd)/backend/logs:/app/src/logs:rw \
-        $ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND
-    printf "\n                      Backend service is up and running.                      \n\n"
+# bundle Backend service
+bundle_backend() {
+    # pulling and saving latest image
+    printf "[INFO] Pulling backend image ... \n"
+    docker pull "$ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND"
+    docker save -o "$HOME/incerto/backend-$IMAGE_TAG_BACKEND.tar" "$ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND"
+    printf "\n                      Pulled and saved incerto-backend image.                      \n\n"
 }
 
-# setup and run AI service
-run_ai() {
-    REQUIRED_DIRS=(
-        "$(pwd)/ai"
-        "$(pwd)/ai/logs"
-    )
-    REQUIRED_FILES=(
-        "$(pwd)/ai/.env"
-    )
-    # ensure required directories exist
-    for dir in "${REQUIRED_DIRS[@]}"; do
-        if [ ! -d "$dir" ]; then
-            printf "[INFO] Creating missing directory: $dir\n"
-            mkdir -p "$dir"
-        fi
-    done
-    # ensure required files exist
-    for file in "${REQUIRED_FILES[@]}"; do
-        if [ ! -f "$file" ]; then
-            printf "[INFO] Required file missing: $file\n"
-            touch "$file"
-            printf "[INFO] Created the missing file: $file\n"
-        fi
-    done
-    # stop and remove the existing container if it exists
-    if [ "$(docker ps -aq -f name=$CONTAINER_NAME_AI)" ]; then
-        printf "[INFO] A container with the name $CONTAINER_NAME_AI already exists. Removing it ...\n"
-        docker rm -f $CONTAINER_NAME_AI
-        printf "[SUCCESS] Existing container removed.\n"
-    else
-        printf "[INFO] No existing container with the name $CONTAINER_NAME_AI found.\n"
-    fi
-    # change permissions
-    printf "[INFO] Change permissions for $(pwd)/ai/logs as it is read-write\n"
-    sudo chmod -R 777 $(pwd)/ai/logs
-    
-    # set up memory limits
-    MEMORY_LIMIT_PERCENTAGE=50
-    MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
-    MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
-    
-    # run the new container
-    printf "[INFO] Starting a new container with the latest image...\n"
-    docker run -d \
-        --name $CONTAINER_NAME_AI \
-        --pull=always \
-        --restart=always \
-        --memory=${MEMORY_LIMIT_MB}m \
-        --network host \
-        --env-file $(pwd)/ai/.env \
-        -v $(pwd)/ai/logs:/app/logs:rw \
-        $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
-    printf "\n                      AI service is up and running.                      \n\n"
+# bundle AI service
+bundle_ai() {
+    # pulling and saving latest image
+    printf "[INFO] Pulling AI image ... \n"
+    docker pull "$ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI"
+    docker save -o "$HOME/incerto/ai-$IMAGE_TAG_AI.tar" "$ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI"
+    printf "\n                      Pulled and saved incerto-ai image.                      \n\n"
 }
 
 install_aws_cli
@@ -449,11 +335,20 @@ setup_ecr
 
 setup_base_dir
 
-run_frontend
+printf "[INFO] Pulling and saving Docker images ... \n"
 
-run_backend
+if [ "$INCERTO_FRONTEND" = "true" ]; then
+  bundle_frontend
+fi
 
-run_ai
+if [ "$INCERTO_BACKEND" = "true" ]; then
+  bundle_backend
+fi
+
+if [ "$INCERTO_AI" = "true" ]; then
+  bundle_ai
+
+fi
 
 docker_cleanup
 
