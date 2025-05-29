@@ -300,7 +300,7 @@ install_docker() {
         . /etc/os-release
         case "$ID" in
             ubuntu|debian) install_docker_ubuntu ;;
-            centos|rhel|fedora|amazon|amzn)) install_docker_rhel ;;
+            centos|rhel|fedora|amazon|amzn) install_docker_rhel ;;
             *)
                 printf "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported.\n"
                 exit 1
