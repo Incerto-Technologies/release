@@ -291,7 +291,7 @@ extract_images() {
     
     print_info "Extracting incerto.zip ... "
     unzip -o "$ZIP_FILE" -d "$HOME"
-    print_success "Extraction completed "
+    print_success "Extraction completed\n"
 }
 
 # function to load Docker images
@@ -320,7 +320,7 @@ load_images() {
             exit 1
         fi
     done
-    log_success "All required .tar files found.\n"
+    print_success "All required .tar files found.\n"
 }
 
 # setup and run frontend service
