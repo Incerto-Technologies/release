@@ -269,6 +269,7 @@ install_docker_rhel() {
             return
         elif [ "$ID" = "rhel" ] || [ "$ID" = "centos" ]; then
             printf "[INFO] Detected Red Hat. Installing Docker for RedHat/CentOS ...\n"
+            sudo yum update -y
             sudo dnf -y install dnf-plugins-core
             sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
             sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
