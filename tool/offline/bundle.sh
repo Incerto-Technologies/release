@@ -176,7 +176,7 @@ install_aws_cli() {
     install_aws_cli_direct() {
         if curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; then
             printf "[INFO] Download completed. Extracting ... \n"
-            if unzip awscliv2.zip; then
+            if unzip -q awscliv2.zip; then
                 printf "[INFO] Installing AWS CLI ... \n"
                 if sudo ./aws/install; then
                     printf "[INFO] Installation completed.\n"
