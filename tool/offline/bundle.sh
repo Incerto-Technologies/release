@@ -270,9 +270,9 @@ install_docker_rhel() {
         elif [ "$ID" = "rhel" ]; then
             printf "[INFO] Detected Red Hat. Installing Docker for RedHat ...\n"
             sudo dnf update -y
-            sudo dnf -y install dnf-plugins-core yum-utils device-mapper-persistent-data lvm2
+            sudo dnf install -y dnf-plugins-core yum-utils device-mapper-persistent-data lvm2
             sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-            sudo dnf install docker-ce docker-ce-cli containerd.io
+            sudo dnf install -y docker-ce docker-ce-cli containerd.io
             sudo systemctl start docker
             sudo systemctl enable docker
             printf "[SUCCESS] Docker installed on RedHat.\n"
