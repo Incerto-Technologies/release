@@ -106,7 +106,7 @@ done
 
 printf "\n[INFO] Proceeding with using \n\n    env: $ENV \n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n\n"
 
-# Update image tags based on the ENV value
+# update image tags based on the ENV value
 if [ "$ENV" = "dev" ]; then
     IMAGE_TAG_FRONTEND="dev"
     IMAGE_TAG_BACKEND="dev"
@@ -117,33 +117,117 @@ else
     IMAGE_TAG_AI="prod"
 fi
 
-# Function to check and install AWS CLI
-install_aws_cli() {
-    if command -v aws &> /dev/null; then
-        printf "[INFO] AWS CLI is already installed on this machine.\n\n"
+# install helper tools
+install_helper_tools() {
+    # need zip unzip
+    if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
+        printf "[INFO] zip and unzip are already installed on this machine.\n\n"
         return 0
     fi
+    printf "[INFO] Installing helper tools ... \n"
+    # detect OS and install accordingly
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
-            ubuntu) 
-                sudo snap install aws-cli --classic
+            ubuntu|debian) 
+                printf "[INFO] Detected Ubuntu/Debian. Installing via apt ...\n"
+                sudo apt update -y
+                sudo apt install -y zip unzip
                 ;;
-            rhel | centos | amzn) 
-                sudo yum install -y aws-cli
+            centos|rhel|fedora|amazon|amzn)
+                printf "[INFO] Detected RHEL-based system. Installing via direct download ...\n"
+                if command -v dnf &> /dev/null; then
+                    # Use dnf for newer RHEL/Fedora systems
+                    sudo dnf install -y zip unzip
+                elif command -v yum &> /dev/null; then
+                    # Use yum for older RHEL/CentOS systems
+                    sudo yum install -y zip unzip
+                else
+                    printf "[ERROR] No package manager (dnf/yum) found.\n"
+                    return 1
+                fi
                 ;;
-            *)
-                printf "[ERROR] Unsupported operating system. Only Ubuntu, RHEL, CentOS, and Amazon Linux are supported.\n"
-                exit 1
+            *) 
+                printf "[ERROR] Unsupported Linux distribution: $ID\n"
+                return 1
                 ;;
         esac
     else
         printf "[ERROR] OS detection failed. Unable to proceed.\n"
         exit 1
     fi
+    # Verify installation was successful
+    if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
+        printf "[SUCCESS] AWS CLI successfully installed!\n"
+        return 0
+    else
+        printf "[ERROR] AWS CLI installation failed. Command not found after installation.\n"
+        return 1
+    fi
 }
 
-# function to install Docker on Ubuntu
+# function to check and install AWS CLI
+install_aws_cli() {
+    if command -v aws &> /dev/null; then
+        printf "[INFO] AWS CLI is already installed on this machine.\n\n"
+        return 0
+    fi
+    # install aws-cli directly via binary
+    install_aws_cli_direct() {
+        if curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; then
+            printf "[INFO] Download completed. Extracting ... \n"
+            if unzip -q awscliv2.zip; then
+                printf "[INFO] Installing AWS CLI ... \n"
+                if sudo ./aws/install; then
+                    printf "[INFO] Installation completed.\n"
+                    return 0
+                else
+                    printf "[ERROR] Installation failed.\n"
+                    return 1
+                fi
+            else
+                printf "[ERROR] Failed to extract awscliv2.zip\n"
+                return 1
+            fi
+        else
+            printf "[ERROR] Failed to download AWS CLI.\n"
+            return 1
+        fi
+    }
+    # detect OS and install accordingly
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        case "$ID" in
+            ubuntu|debian) 
+                printf "[INFO] Detected Ubuntu/Debian. Installing via snap ...\n"
+                sudo snap install aws-cli --classic -y
+                ;;
+            centos|rhel|fedora|amazon|amzn)
+                printf "[INFO] Detected RHEL-based system. Installing via direct download ...\n"
+                install_aws_cli_direct
+                return $?
+                ;;
+            *) 
+                printf "[INFO] Detected other Linux distribution. Installing via direct download ...\n"
+                install_aws_cli_direct
+                return $?
+                ;;
+        esac
+    else
+        printf "[ERROR] OS detection failed. Unable to proceed.\n"
+        exit 1
+    fi
+    # Verify installation was successful
+    if command -v aws &> /dev/null; then
+        printf "[SUCCESS] AWS CLI successfully installed!\n"
+        return 0
+    else
+        printf "[ERROR] AWS CLI installation failed. Command not found after installation.\n"
+        return 1
+    fi
+}
+
+# function to install Docker on Ubuntu/Debian
 install_docker_ubuntu() {
     printf "[INFO] Installing Docker on Ubuntu ...\n"
     sudo apt-get update -y
@@ -177,21 +261,25 @@ install_docker_rhel() {
             return
         elif [ "$ID" = "amzn" ] && [ "$VERSION_ID" = "2023" ]; then
             printf "[INFO] Detected Amazon Linux 2023. Installing Docker for Amazon Linux 2023 ...\n"
-            sudo yum update -y
+            sudo dnf update -y
             sudo dnf install -y docker
             sudo systemctl start docker
             sudo systemctl enable docker
             printf "[SUCCESS] Docker installed on Amazon Linux 2023.\n"
             return
-        else
-            printf "[INFO] Detected RHEL. Installing Docker for RHEL ...\n"
-            sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc
-            sudo dnf -y install dnf-plugins-core
+        elif [ "$ID" = "rhel" ]; then
+            printf "[INFO] Detected Red Hat. Installing Docker for RedHat ...\n"
+            sudo dnf update -y
+            sudo dnf install -y dnf-plugins-core yum-utils device-mapper-persistent-data lvm2
             sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-            sudo dnf -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-            sudo systemctl enable --now docker
-            printf "[SUCCESS] Docker installed on RHEL.\n"
+            sudo dnf install -y docker-ce docker-ce-cli containerd.io
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            printf "[SUCCESS] Docker installed on RedHat.\n"
             return
+        else
+            printf "[ERROR] Unsupported Linux distribution: $ID\n"
+            return 1
         fi
     fi
 }
@@ -213,8 +301,8 @@ install_docker() {
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
-            ubuntu) install_docker_ubuntu ;;
-            rhel | centos | amzn) install_docker_rhel ;;
+            ubuntu|debian) install_docker_ubuntu ;;
+            centos|rhel|fedora|amazon|amzn) install_docker_rhel ;;
             *)
                 printf "[ERROR] Unsupported operating system. Only Ubuntu and RHEL are supported.\n"
                 exit 1
@@ -297,7 +385,7 @@ setup_base_dir() {
     mkdir -p "$HOME/incerto" && cd "$HOME/incerto" || { printf "[ERROR] Failed to cd into ~/incerto"; exit 1; }
 }
 
-# setup and run Frontend service
+# setup and run frontend service
 run_frontend() {
     REQUIRED_DIRS=(
         "$(pwd)/frontend"
@@ -350,7 +438,7 @@ run_frontend() {
     printf "\n                      Frontend service is up and running.                      \n\n"
 }
 
-# setup and run Backend service
+# setup and run backend service
 run_backend() {
     REQUIRED_DIRS=(
         "$(pwd)/backend"
@@ -465,6 +553,8 @@ run_ai() {
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
+
+install_helper_tools
 
 install_aws_cli
 

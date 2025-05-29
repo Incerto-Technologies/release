@@ -166,7 +166,7 @@ install_helper_tools() {
     fi
 }
 
-# Function to check and install AWS CLI
+# function to check and install AWS CLI
 install_aws_cli() {
     if command -v aws &> /dev/null; then
         printf "[INFO] AWS CLI is already installed on this machine.\n\n"
@@ -388,7 +388,7 @@ setup_base_dir() {
     printf "[INFO] Removed old *.tar and *.json \n\n"
 }
 
-# bundle Frontend service
+# bundle frontend service
 bundle_frontend() {
     # pulling and saving latest image
     printf "[INFO] Pulling frontend image ... \n"
@@ -397,7 +397,7 @@ bundle_frontend() {
     printf "\n                      Pulled and saved incerto-frontend image.                      \n\n"
 }
 
-# bundle Backend service
+# bundle backend service
 bundle_backend() {
     # pulling and saving latest image
     printf "[INFO] Pulling backend image ... \n"
