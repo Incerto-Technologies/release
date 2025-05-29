@@ -98,7 +98,7 @@ printf "\n    env: $ENV \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERT
 install_helper_tools() {
     # need zip unzip
     if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
-        print_info "zip and unzip are already installed on this machine.\n"
+        print_info "zip and unzip are already installed on this machine."
         return 0
     fi
     print_info "Installing helper tools ... "
@@ -207,13 +207,14 @@ configure_docker_post_install() {
     print_info "Configuring Docker group and permissions ..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    print_success "Docker group configured. Please logout and log back in.\n And run the same command."
+    print_success "Docker group configured. Please logout and log back in. And run the same command."
 }
 
 # check and install Docker
 install_docker() {
     if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
-        print_info "Docker is already installed on this machine.\n"
+        print_info "Docker is already installed on this machine."
+        printf "\n"
         return 0
     fi
     
@@ -246,7 +247,7 @@ check_docker_permissions() {
         print_info "Adding user \`$USER\` to the \`docker\` group ..."
         sudo usermod -aG docker $USER
         print_info "User \`$USER\` added to the \`docker\` group."
-        print_success "User added to Docker group. Please logout and log back in.\n And run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+        print_success "User added to Docker group. Please logout and log back in. And run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
         exit 0
     fi
 }
