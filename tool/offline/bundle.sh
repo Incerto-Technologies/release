@@ -272,7 +272,8 @@ install_docker_rhel() {
             sudo dnf -y install dnf-plugins-core
             sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
             sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-            sudo systemctl enable --now docker
+            sudo systemctl start docker
+            sudo systemctl enable docker
             printf "[SUCCESS] Docker installed on RedHat/CentOS.\n"
             return
         else
