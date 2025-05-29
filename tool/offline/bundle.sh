@@ -124,7 +124,7 @@ while [ $# -gt 0 ]; do
 done
 
 print_info "Proceeding with using"
-printf "\n    env: $ENV \n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n"
+printf "\n    env: $ENV \n    aws-access-key-id: $AWS_ACCESS_KEY_ID \n    aws-secret-access-key: $AWS_SECRET_ACCESS_KEY \n    aws-region: $AWS_REGION \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n\n"
 
 # Update image tags based on the ENV value
 if [ "$ENV" = "dev" ]; then
@@ -414,7 +414,7 @@ bundle_frontend() {
     print_info "Pulling frontend image ... "
     docker pull "$ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND"
     docker save -o "$HOME/incerto/frontend-$IMAGE_TAG_FRONTEND.tar" "$ECR_URL_FRONTEND/$IMAGE_NAME_FRONTEND:$IMAGE_TAG_FRONTEND"
-    printf "\n                      Pulled and saved incerto-frontend image.                      \n"
+    printf "\n                      Pulled and saved incerto-frontend image.                      \n\n"
 }
 
 # bundle backend service
@@ -423,7 +423,7 @@ bundle_backend() {
     print_info "Pulling backend image ... "
     docker pull "$ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND"
     docker save -o "$HOME/incerto/backend-$IMAGE_TAG_BACKEND.tar" "$ECR_URL_BACKEND/$IMAGE_NAME_BACKEND:$IMAGE_TAG_BACKEND"
-    printf "\n                      Pulled and saved incerto-backend image.                      \n"
+    printf "\n                      Pulled and saved incerto-backend image.                      \n\n"
 }
 
 # bundle AI service
@@ -432,7 +432,7 @@ bundle_ai() {
     print_info "Pulling AI image ... "
     docker pull "$ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI"
     docker save -o "$HOME/incerto/ai-$IMAGE_TAG_AI.tar" "$ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI"
-    printf "\n                      Pulled and saved incerto-ai image.                      \n"
+    printf "\n                      Pulled and saved incerto-ai image.                      \n\n"
 }
 
 create_info_json() {
@@ -452,7 +452,7 @@ create_info_json() {
 EOF
 )
     echo "$CONTENT" | tee "$HOME/incerto/info.json"
-    print_success "\n Saved info.json \n"
+    print_success "Saved info.json \n"
 }
 
 create_zip() {
@@ -481,7 +481,7 @@ create_zip() {
     
     print_info "Creating zip from directory: $INCERTO_DIR"
     print_info "Contents to be zipped:"
-    ls -la "$INCERTO_DIR/"
+    ls -lah "$INCERTO_DIR/"
     
     # Change to home directory and create zip with relative paths
     cd "$HOME_DIR" || {
@@ -500,39 +500,43 @@ create_zip() {
     fi
 }
 
-install_helper_tools
+main() {
+    install_helper_tools
 
-install_aws_cli
+    install_aws_cli
 
-install_docker
- 
-check_docker_permissions
+    install_docker
+    
+    check_docker_permissions
 
-setup_ecr
+    setup_ecr
 
-setup_base_dir
+    setup_base_dir
 
-print_info "Pulling and saving Docker images ... "
+    print_info "Pulling and saving Docker images ... "
 
-bundle_frontend
-bundle_backend
-bundle_ai
+    bundle_frontend
+    bundle_backend
+    bundle_ai
 
-create_info_json
-create_zip
+    create_info_json
+    create_zip
 
-docker_cleanup
+    docker_cleanup
+}
 
-printf "\n************************************************************************"
-printf "                                                                        "
-printf "d888888b   d8b   db    .o88b.   d88888b   d8888b.   d888888b    .d88b.  "
-printf "   88      888o  88   d8P  Y8   88        88   8D    ~~88~~    .8P  Y8. "
-printf "   88      88V8o 88   8P        88ooooo   88oobY       88      88    88 "
-printf "   88      88 V8o88   8b        88~~~~~   88 8b        88      88    88 "
-printf "  .88.     88  V888   Y8b  d8   88.       88  88.      88       8b  d8  "
-printf "Y888888P   VP   V8P     Y88P    Y88888P   88   YD      YP        Y88P   "
-printf "                                                                        "
-printf "                      Incerto Technologies Pvt Ltd                      "
-printf "                           https://incerto.in                           "
-printf "                                                                        "
-printf "************************************************************************"
+main "$@"
+
+printf "\n************************************************************************\n"
+printf "                                                                        \n"
+printf "d888888b   d8b   db    .o88b.   d88888b   d8888b.   d888888b    .d88b.  \n"
+printf "   88      888o  88   d8P  Y8   88        88   8D    ~~88~~    .8P  Y8. \n"
+printf "   88      88V8o 88   8P        88ooooo   88oobY       88      88    88 \n"
+printf "   88      88 V8o88   8b        88~~~~~   88 8b        88      88    88 \n"
+printf "  .88.     88  V888   Y8b  d8   88.       88  88.      88       8b  d8  \n"
+printf "Y888888P   VP   V8P     Y88P    Y88888P   88   YD      YP        Y88P   \n"
+printf "                                                                        \n"
+printf "                      Incerto Technologies Pvt Ltd                      \n"
+printf "                           https://incerto.in                           \n"
+printf "                                                                        \n"
+printf "************************************************************************\n"
