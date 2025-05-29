@@ -267,15 +267,15 @@ install_docker_rhel() {
             sudo systemctl enable docker
             printf "[SUCCESS] Docker installed on Amazon Linux 2023.\n"
             return
-        elif [ "$ID" = "rhel" ] || [ "$ID" = "centos" ]; then
-            printf "[INFO] Detected Red Hat. Installing Docker for RedHat/CentOS ...\n"
+        elif [ "$ID" = "rhel" ]; then
+            printf "[INFO] Detected Red Hat. Installing Docker for RedHat ...\n"
             sudo dnf update -y
-            sudo dnf -y install dnf-plugins-core
-            sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-            sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            sudo dnf -y install dnf-plugins-core yum-utils device-mapper-persistent-data lvm2
+            sudo dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+            sudo dnf install docker-ce docker-ce-cli containerd.io
             sudo systemctl start docker
             sudo systemctl enable docker
-            printf "[SUCCESS] Docker installed on RedHat/CentOS.\n"
+            printf "[SUCCESS] Docker installed on RedHat.\n"
             return
         else
             printf "[ERROR] Unsupported Linux distribution: $ID\n"
