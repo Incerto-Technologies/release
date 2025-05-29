@@ -10,15 +10,15 @@ NO_COLOR='\033[0m'
 
 # Logging functions
 print_info() {
-    printf "${BLUE}[INFO]${NO_COLOR} %s\n" "$1"
+    printf "${BLUE}[INFO]${NO_COLOR} %b\n" "$1"
 }
 
 print_success() {
-    printf "${GREEN}[SUCCESS]${NO_COLOR} %s\n" "$1"
+    printf "${GREEN}[SUCCESS]${NO_COLOR} %b\n" "$1"
 }
 
 print_error() {
-    printf "${RED}[ERROR]${NO_COLOR} %s\n" "$1"
+    printf "${RED}[ERROR]${NO_COLOR} %b\n" "$1"
 }
 
 # configuration
@@ -92,13 +92,13 @@ while [ $# -gt 0 ]; do
 done
 
 print_info "Proceeding with using"
-printf "\n    env: $ENV \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n"
+printf "\n    env: $ENV \n    frontend: $INCERTO_FRONTEND \n    backend: $INCERTO_BACKEND \n    ai: $INCERTO_AI \n    domain: $DOMAIN\n\n"
 
 # install helper tools
 install_helper_tools() {
     # need zip unzip
     if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
-        print_info "zip and unzip are already installed on this machine."
+        print_info "zip and unzip are already installed on this machine.\n"
         return 0
     fi
     print_info "Installing helper tools ... "
@@ -137,10 +137,10 @@ install_helper_tools() {
     
     # Verify installation was successful
     if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
-        print_success "AWS CLI successfully installed!"
+        print_success "AWS CLI successfully installed!\n"
         return 0
     else
-        print_error "AWS CLI installation failed. Command not found after installation."
+        print_error "AWS CLI installation failed. Command not found after installation.\n"
         return 1
     fi
 }
@@ -159,7 +159,7 @@ install_docker_ubuntu() {
     sudo apt-get install -y docker-ce
     sudo systemctl enable docker
     sudo systemctl start docker
-    print_success "Docker installed successfully on Ubuntu."
+    print_success "Docker installed successfully on Ubuntu.\n"
 }
 
 # function to install Docker on RHEL
@@ -213,8 +213,7 @@ configure_docker_post_install() {
 # check and install Docker
 install_docker() {
     if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
-        print_info "Docker is already installed on this machine."
-        printf "\n"
+        print_info "Docker is already installed on this machine.\n"
         return 0
     fi
     
@@ -303,15 +302,25 @@ load_images() {
       
     print_info "Loading Frontend service image ... "
     IMAGE_NAME_FRONTEND=$(docker load -i frontend-prod.tar | grep "Loaded image:" | awk '{print $3}')
-    print_success "Frontend image loaded: $IMAGE_NAME_FRONTEND "
+    print_success "Frontend image loaded: $IMAGE_NAME_FRONTEND \n"
     
     print_info "Loading Backend service image ... "
     IMAGE_NAME_BACKEND=$(docker load -i backend-prod.tar | grep "Loaded image:" | awk '{print $3}')
-    print_success "Backend image loaded: $IMAGE_NAME_BACKEND "
+    print_success "Backend image loaded: $IMAGE_NAME_BACKEND \n"
 
     print_info "Loading AI service image ... "
     IMAGE_NAME_AI=$(docker load -i ai-prod.tar | grep "Loaded image:" | awk '{print $3}')
-    print_success "AI image loaded: $IMAGE_NAME_AI "
+    print_success "AI image loaded: $IMAGE_NAME_AI \n"
+
+     # Verify required .tar files exist
+    TAR_FILES=("ai-prod.tar" "frontend-prod.tar" "backend-prod.tar")
+    for tar_file in "${TAR_FILES[@]}"; do
+        if [ ! -f "$EXTRACT_DIRECTORY/$tar_file" ]; then
+            log_error "Required file $EXTRACT_DIRECTORY/$tar_file not found after extraction!"
+            exit 1
+        fi
+    done
+    log_success "All required .tar files found.\n"
 }
 
 # setup and run frontend service
