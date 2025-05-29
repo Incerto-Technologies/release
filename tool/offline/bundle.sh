@@ -326,6 +326,7 @@ bundle_ai() {
 }
 
 create_info_json() {
+    printf "[INFO] Creating info.json ... \n"
     VERSION=$(date +"%Y%m%d_%H%M%S")
     cat > "$HOME/incerto/info.json" << EOF
     {
@@ -339,6 +340,7 @@ create_info_json() {
         ]
     }
 EOF
+    printf "[SUCCESS] Saved info.json \n\n"
 }
 
 install_aws_cli
