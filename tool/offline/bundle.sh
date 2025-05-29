@@ -117,30 +117,114 @@ else
     IMAGE_TAG_AI="prod"
 fi
 
-# Function to check and install AWS CLI
-install_aws_cli() {
-    if command -v aws &> /dev/null; then
-        printf "[INFO] AWS CLI is already installed on this machine.\n\n"
+# install helper tools
+install_helper_tools() {
+    # need zip unzip
+    if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
+        printf "[INFO] zip and unzip are already installed on this machine.\n\n"
         return 0
     fi
+    printf "[INFO] Installing helper tools ... \n"
+    # detect OS and install accordingly
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         case "$ID" in
-            ubuntu) 
-                sudo snap install aws-cli --classic
+            ubuntu|debian) 
+                printf "[INFO] Detected Ubuntu/Debian. Installing via apt ...\n"
+                sudo apt update -y
+                sudo apt install -y zip unzip
                 ;;
-            rhel | centos | amzn) 
-                sudo yum install -y aws-cli
+            centos|rhel|fedora|amazon|amzn)
+                printf "[INFO] Detected RHEL-based system. Installing via direct download ...\n"
+                if command -v dnf &> /dev/null; then
+                    # Use dnf for newer RHEL/Fedora systems
+                    sudo dnf install -y zip unzip
+                elif command -v yum &> /dev/null; then
+                    # Use yum for older RHEL/CentOS systems
+                    sudo yum install -y zip unzip
+                else
+                    printf "[ERROR] No package manager (dnf/yum) found.\n"
+                    return 1
+                fi
                 ;;
-            *)
-                printf "[ERROR] Unsupported operating system. Only Ubuntu, RHEL, CentOS, and Amazon Linux are supported.\n"
-                exit 1
+            *) 
+                printf "[ERROR] Unsupported Linux distribution: $ID\n"
+                return 1
                 ;;
         esac
     else
         printf "[ERROR] OS detection failed. Unable to proceed.\n"
         exit 1
     fi
+    # Verify installation was successful
+    if command -v zip &> /dev/null && command -v unzip &> /dev/null; then
+        printf "[SUCCESS] AWS CLI successfully installed!\n"
+        return 0
+    else
+        printf "[ERROR] AWS CLI installation failed. Command not found after installation.\n"
+        return 1
+    fi
+}
+
+# Function to check and install AWS CLI
+install_aws_cli() {
+    if command -v aws &> /dev/null; then
+        printf "[INFO] AWS CLI is already installed on this machine.\n\n"
+        return 0
+    fi
+    # detect OS and install accordingly
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        case "$ID" in
+            ubuntu|debian) 
+                printf "[INFO] Detected Ubuntu/Debian. Installing via snap ...\n"
+                sudo snap install aws-cli --classic -y
+                ;;
+            centos|rhel|fedora|amazon|amzn)
+                printf "[INFO] Detected RHEL-based system. Installing via direct download ...\n"
+                install_aws_cli_direct
+                return $?
+                ;;
+            *) 
+                printf "[INFO] Detected other Linux distribution. Installing via direct download ...\n"
+                install_aws_cli_direct
+                return $?
+                ;;
+        esac
+    else
+        printf "[ERROR] OS detection failed. Unable to proceed.\n"
+        exit 1
+    fi
+    # Verify installation was successful
+    if command -v aws &> /dev/null; then
+        printf "[SUCCESS] AWS CLI successfully installed!\n"
+        return 0
+    else
+        printf "[ERROR] AWS CLI installation failed. Command not found after installation.\n"
+        return 1
+    fi
+    # install aws-cli directly via binary
+    install_aws_cli_directly() {
+        if curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"; then
+            printf "[INFO] Download completed. Extracting ... \n"
+            if unzip awscliv2.zip; then
+                printf "[INFO] Installing AWS CLI ... \n"
+                if sudo ./aws/install; then
+                    printf "[INFO] Installation completed.\n"
+                    return 0
+                else
+                    printf "[ERROR] Installation failed.\n"
+                    return 1
+                fi
+            else
+                printf "[ERROR] Failed to extract awscliv2.zip\n"
+                return 1
+            fi
+        else
+            printf "[ERROR] Failed to download AWS CLI.\n"
+            return 1
+        fi
+    }
 }
 
 # function to install Docker on Ubuntu
@@ -342,6 +426,8 @@ create_info_json() {
 EOF
     printf "[SUCCESS] Saved info.json \n\n"
 }
+
+install_helper_tools
 
 install_aws_cli
 
