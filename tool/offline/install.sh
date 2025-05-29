@@ -275,11 +275,12 @@ extract_images() {
         print_info "Directory $EXTRACT_DIRECTORY already exists"
         print_info "Backing up existing .tar and .json files ... "
         
-        # Create backup directory with timestamp
-        BACKUP_DIRECTORY="$EXTRACT_DIRECTORY/backup_$(date +%Y%m%d_%H%M%S)"
+        # remove and create a backup directory
+        BACKUP_DIRECTORY="$EXTRACT_DIRECTORY/backup"
+        rm -rf "$BACKUP_DIRECTORY"
         mkdir -p "$BACKUP_DIRECTORY"
         
-        # Move existing .tar and .json files to backup
+        # move existing .tar and .json files to backup
         find "$EXTRACT_DIRECTORY" -maxdepth 1 -name "*.tar" -exec mv {} "$BACKUP_DIRECTORY/" \; 2>/dev/null || true
         find "$EXTRACT_DIRECTORY" -maxdepth 1 -name "*.json" -exec mv {} "$BACKUP_DIRECTORY/" \; 2>/dev/null || true
         
@@ -360,7 +361,7 @@ run_frontend() {
     MEMORY_LIMIT_PERCENTAGE=40
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
     print_info "Starting a new container with the latest image ..."
@@ -415,13 +416,12 @@ run_backend() {
     MEMORY_LIMIT_PERCENTAGE=50
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
     print_info "Starting a new container with the latest image ..."
     docker run -d \
         --name $CONTAINER_NAME_BACKEND \
-        --pull=always \
         --restart=always \
         --memory=${MEMORY_LIMIT_MB}m \
         --network host \
@@ -475,13 +475,12 @@ run_ai() {
     MEMORY_LIMIT_PERCENTAGE=50
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service\n" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
     print_info "Starting a new container with the latest image..."
     docker run -d \
         --name $CONTAINER_NAME_AI \
-        --pull=always \
         --restart=always \
         --memory=${MEMORY_LIMIT_MB}m \
         --network host \
