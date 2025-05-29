@@ -360,7 +360,7 @@ run_frontend() {
     MEMORY_LIMIT_PERCENTAGE=40
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    print_info "Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
     print_info "Starting a new container with the latest image ..."
@@ -416,7 +416,7 @@ run_backend() {
     MEMORY_LIMIT_PERCENTAGE=50
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    print_info "Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
     print_info "Starting a new container with the latest image ..."
@@ -476,7 +476,7 @@ run_ai() {
     MEMORY_LIMIT_PERCENTAGE=50
     MEMORY_TOTAL_MB=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
     MEMORY_LIMIT_MB=$((($MEMORY_TOTAL_MB * $MEMORY_LIMIT_PERCENTAGE) / 100))
-    print_info "Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
+    printf "[INFO] Allocating %d%% (%dMB out of %dMB) for the service" $MEMORY_LIMIT_PERCENTAGE $MEMORY_LIMIT_MB $MEMORY_TOTAL_MB
     
     # run the new container
     print_info "Starting a new container with the latest image..."
