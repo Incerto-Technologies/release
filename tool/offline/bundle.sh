@@ -239,7 +239,7 @@ install_aws_cli() {
     fi
     # Verify installation was successful
     if command -v aws &> /dev/null; then
-        print_success "AWS CLI successfully installed!"
+        print_success "AWS CLI successfully installed!\n"
         return 0
     else
         print_error "AWS CLI installation failed. Command not found after installation."
@@ -309,7 +309,7 @@ configure_docker_post_install() {
     print_info "Configuring Docker group and permissions ..."
     sudo groupadd docker || true  # Create the Docker group if it doesn't exist
     sudo usermod -aG docker $USER  # Add the current user to the Docker group
-    print_success "Docker group configured. Please logout and log back in.\n And run the same command."
+    print_success "Docker group configured. Please logout and log back in.\nAnd run the same command."
 }
 
 # check and install Docker
@@ -341,13 +341,13 @@ install_docker() {
 check_docker_permissions() {
     print_info "Checking Docker permissions for the current user ..."
     if groups $USER | grep -q '\bdocker\b'; then
-        print_info "User \`$USER\` already has access to Docker without sudo."
+        print_info "User \`$USER\` already has access to Docker without sudo.\n"
     else
         print_info "User \`$USER\` does not have access to Docker without sudo."
         print_info "Adding user \`$USER\` to the \`docker\` group ..."
         sudo usermod -aG docker $USER
         print_info "User \`$USER\` added to the \`docker\` group."
-        print_success "User added to Docker group. Please logout and log back in. \n And run the same command: curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/install.sh | sh -s -- --service-url $SERVICE_URL --type $TYPE"
+        print_success "User added to Docker group. Please logout and log back in. \nAnd run the same command."
         exit 0
     fi
 }
@@ -390,6 +390,7 @@ setup_ecr() {
     aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
     aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
     aws configure set region $AWS_REGION
+    print_info "Authenticating with AWS ECR."
     # authenticate Docker with ECR
     if aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"; then
         print_success "Successfully authenticated with AWS ECR.\n"

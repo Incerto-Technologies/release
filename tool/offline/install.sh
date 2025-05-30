@@ -213,7 +213,7 @@ configure_docker_post_install() {
 # check and install Docker
 install_docker() {
     if [ -x /usr/bin/docker ] || [ -x /usr/local/bin/docker ]; then
-        print_info "Docker is already installed on this machine.\n"
+        print_info "Docker is already installed on this machine."
         return 0
     fi
     
@@ -297,7 +297,7 @@ extract_images() {
 
 # function to load Docker images
 load_images() {
-    print_info "Loading Docker images from .tar files ... "
+    print_info "Loading Docker images from .tar files ... \n"
     
     cd "$EXTRACT_DIRECTORY"
       
@@ -492,6 +492,7 @@ run_ai() {
 
 # function to show container status
 show_status() {
+    printf "\n"
     print_info "Container Status "
     docker ps --format "table {{.ID}}\t{{.Names}}\t{{.Command}}\t{{.Status}}\t{{.RunningFor}}\t{{.Ports}}\t{{.Size}}"
     printf ""
