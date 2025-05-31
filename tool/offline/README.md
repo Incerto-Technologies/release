@@ -24,11 +24,6 @@ Please follow the below steps to install Incerto's tool.
     [ -f /etc/nginx/conf.d/default.conf ] && sudo rm /etc/nginx/conf.d/default.conf
     ```
 
-3. Install Incerto using the `incerto.zip` via the below command (replace `${DOMAIN}`)
-    ```
-    cd ~ && curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/tool/offline/install.sh | bash -s -- --env prod --frontend true --backend true --ai true --domain <${DOMAIN}>
-    ```
-
 ### Certbot Certificates vs Custom Certificates
 
 #### Certbot Certificates
@@ -70,23 +65,24 @@ Please follow the below steps to install Incerto's tool.
 
 ## Tool
 
+Install the tool using the `incerto.zip` via the below command (replace `${DOMAIN}`)
 ```
-Ask the Incerto team for final command with secrets and keys.
+cd ~ && curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/tool/offline/install.sh | bash -s -- --env prod --frontend true --backend true --ai true --domain <${DOMAIN}>
 ```
 
-### Setup Frontend 
+#### Setup Frontend 
 
 ```
 Ask the Incerto team for Frontend `config.json`.
 ```
 
-### Setup Backend
+#### Setup Backend
 
 ```
 Ask the Incerto team for Backend `.env`.
 ```
 
-### Setup AI
+#### Setup AI
 
 ```
 Ask the Incerto team for AI `.env`.

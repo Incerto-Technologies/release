@@ -68,19 +68,19 @@ sudo systemctl status nginx
 Ask the Incerto team for final command with secrets and keys.
 ```
 
-### Setup Frontend 
+#### Setup Frontend 
 
 ```
 Ask the Incerto team for Frontend `config.json`.
 ```
 
-### Setup Backend
+#### Setup Backend
 
 ```
 Ask the Incerto team for Backend `.env`.
 ```
 
-### Setup AI
+#### Setup AI
 
 ```
 Ask the Incerto team for AI `.env`.
