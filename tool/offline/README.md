@@ -4,15 +4,15 @@ Please follow the below steps to install Incerto's tool.
 
 ## VM with access to the internet
 
-1. Download Nginx (or any other dependencies)
+1. Download Nginx, Docker, Zip, Unzip (or any other dependencies)
     ```
-    # Whatever your team follows
+    # Whatever procedure the team follows
     ```
  
 2. Download Incerto
     ```
     # Ask the Incerto team for bundle command with secrets and keys.
-    # `incerto.zip` should be created
+    # incerto.zip should be created
     ```
 
 3. Copy everything required
@@ -22,7 +22,7 @@ Please follow the below steps to install Incerto's tool.
 
 ## VM with no access to the internet
 
-1. Install Nginx
+1. Install Nginx, Docker, Zip, Unzip (or any other dependencies) 
 
 2. Remove `/etc/nginx/conf.d/default.conf` if it exists
     ```
