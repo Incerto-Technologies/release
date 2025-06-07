@@ -335,7 +335,7 @@ fi
 printf "[SUCCESS] \`.env\` file downloaded successfully.\n\n"
 
 # check private and public IPs
-if [ -z "$PRIVATE_IP" ] || [ -z "$PUBLIC_IP" ]; then
+if [ -z "$PRIVATE_IP" ] && [ -z "$PUBLIC_IP" ]; then
     printf "[ERROR] Failed to retrieve private or public IPs. Exiting.\n"
     exit 1
 fi
