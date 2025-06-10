@@ -21,6 +21,114 @@ receivers:
       - name: connection_limit_close 
         query: "select * from (SELECT COUNT(*) AS current_connections, current_setting('max_connections')::int AS max_connections, ROUND((COUNT(*)::numeric / current_setting('max_connections')::numeric) * 100, 2) AS connection_ratio_percentage FROM pg_stat_activity where pg_stat_activity.state = 'active') where connection_ratio_percentage > 70 ;"
 
+      - name: autovacuum_globally_disabled
+        query: "SELECT CASE WHEN current_setting('autovacuum') = 'off' OR current_setting('autovacuum_max_workers') = '0' THEN 1 ELSE 0 END AS autovacuum_globally_disabled WHERE CASE WHEN current_setting('autovacuum') = 'off' OR current_setting('autovacuum_max_workers') = '0' THEN 1 ELSE 0 END = 1"
+
+      - name: autovacuum_workers_idle
+        query: "SELECT CASE WHEN NOT EXISTS (SELECT 1 FROM pg_stat_activity WHERE backend_type = 'autovacuum worker' AND state = 'active' AND now() - query_start < INTERVAL '15 minutes') THEN 1 ELSE 0 END AS autovacuum_workers_idle WHERE CASE WHEN NOT EXISTS (SELECT 1 FROM pg_stat_activity WHERE backend_type = 'autovacuum worker' AND state = 'active' AND now() - query_start < INTERVAL '15 minutes') THEN 1 ELSE 0 END = 1"
+
+      - name: long_running_query_5min
+        query: "SELECT pid, usename FROM pg_stat_activity WHERE state = 'active' AND now() - query_start > INTERVAL '5 minutes'"
+
+      - name: replication_lag_high
+        query: "SELECT application_name, client_addr, COALESCE(EXTRACT(EPOCH FROM replay_lag), 0) AS lag_seconds FROM pg_stat_replication WHERE COALESCE(EXTRACT(EPOCH FROM replay_lag), 0) > 300"
+
+      - name: transaction_id_wraparound_risk
+        query: "SELECT * from (SELECT max(age(datfrozenxid)) AS max_xid_age FROM pg_database) where max_xid_age > 1000000000"
+
+      - name: temp_file_usage_spike
+        query: "SELECT * from (SELECT SUM(temp_bytes) AS current_temp_bytes FROM pg_stat_database) where current_temp_bytes > 1073741824"
+
+      - name: parallel_worker_failures
+        query: "SELECT COUNT(*) AS failures FROM pg_stat_activity WHERE backend_type = 'client backend' AND query ~ 'could not fork'"
+
+      - name: foreign_key_violation
+        query: "SELECT COUNT(*) AS violations FROM pg_stat_activity WHERE state = 'active' AND query ~ 'foreign key constraint'"
+
+      - name: standby_replication_conflicts
+        query: "SELECT * FROM (SELECT COALESCE(SUM(tablespace_conflicts + lock_conflicts + snapshot_conflicts + bufferpin_conflicts + deadlock_conflicts),0) AS total_conflicts FROM pg_stat_database_conflicts) WHERE total_conflicts > 0"
+
+      - name: hot_standby_feedback_disabled
+        query: "SELECT * FROM (SELECT CASE WHEN setting = 'on' THEN 0 ELSE 1 END AS disabled FROM pg_settings WHERE name = 'hot_standby_feedback') WHERE disabled = 1"
+
+      - name: partition_pruning_ineffective
+        query: "SELECT * FROM (SELECT COUNT(*) AS partition_scans FROM pg_stat_all_tables WHERE relkind = 'p' AND seq_scan > 0) WHERE partition_scans > 5"
+
+      - name: buffer_cache_hit_ratio_low
+        query: "SELECT * FROM (SELECT round((SUM(blks_hit)*100.0)/NULLIF(SUM(blks_hit)+SUM(blks_read), 0), 2) AS cache_hit_ratio FROM pg_stat_database) WHERE cache_hit_ratio < 90"
+
+      - name: index_bloat_high
+        query: "SELECT * FROM (SELECT COALESCE(MAX((i.indpages::float / GREATEST(1, i.indtuples)) * 100 / (CASE WHEN a.atttypid IN (16, 17, 18, 19, 20, 21, 23, 26) THEN 8 WHEN a.atttypid IN (1082, 1114, 1184, 1186) THEN 8 ELSE 32 END) - 100), 0) AS max_bloat FROM pg_class c JOIN pg_namespace n ON c.relnamespace = n.oid JOIN pg_index i ON i.indexrelid = c.oid JOIN pg_attribute a ON c.oid = a.attrelid WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast', 'information_schema') AND c.relkind = 'i' AND a.attnum = ANY(i.indkey) AND c.relpages > 10) AS t WHERE max_bloat > 20"
+
+      - name: deadlock_frequency
+        query: "SELECT SUM(deadlocks) AS deadlock_count FROM pg_stat_database WHERE deadlocks > 0"
+
+      - name: table_bloat_high
+        query: "SELECT * FROM (SELECT COUNT(*) AS bloated_tables_count FROM (SELECT schemaname, relname, n_dead_tup, (current_setting('autovacuum_vacuum_threshold')::bigint + current_setting('autovacuum_vacuum_scale_factor')::numeric * reltuples) AS threshold FROM pg_stat_all_tables JOIN pg_class ON pg_stat_all_tables.relid = pg_class.oid WHERE n_dead_tup > (current_setting('autovacuum_vacuum_threshold')::bigint + current_setting('autovacuum_vacuum_scale_factor')::numeric * reltuples) AND schemaname NOT IN ('pg_catalog', 'information_schema')) AS bloated) WHERE bloated_tables_count > 0"
+
+      - name: lock_contention_high
+        query: "SELECT COALESCE(SUM(EXTRACT(EPOCH FROM (clock_timestamp() - query_start))), 0) AS total_lock_wait_time FROM pg_stat_activity WHERE state = 'active' AND wait_event_type = 'Lock' HAVING COALESCE(SUM(EXTRACT(EPOCH FROM (clock_timestamp() - query_start))), 0) > 10"
+
+      - name: sequence_exhaustion_risk
+        query: "SELECT * FROM (SELECT COALESCE(MAX((last_value - min_value)::numeric / NULLIF(max_value - min_value, 0) * 100), 0) AS max_exhaustion_pct FROM pg_sequences WHERE last_value IS NOT NULL) AS t WHERE max_exhaustion_pct >= 90"
+
+      - name: high_cpu_utilization
+        query: "SELECT count(*) as count FROM pg_stat_activity WHERE state = 'active' GROUP BY 1 HAVING count(*) > (SELECT current_setting('max_connections')::int * 0.8)"
+
+      - name: disk_space_critical
+        query: "SELECT datname, ROUND((pg_database_size(datname) * 100.0 / pg_database_size('postgres')) AS disk_usage_percent FROM pg_database WHERE datname NOT IN ('template0', 'template1') AND ROUND((pg_database_size(datname) * 100.0 / pg_database_size('postgres')) > 80"
+
+      - name: high_shared_buffer_usage
+        query: "SELECT * FROM (SELECT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_buffercache' AND installed_version IS NOT NULL)) AS e, (SELECT CASE WHEN e.exists THEN (SELECT round(count(*) FILTER (WHERE relfilenode IS NOT NULL)::numeric * 100.0 / count(*), 2) AS used_percent FROM pg_buffercache) ELSE 0 END FROM e) AS s WHERE s > 90"
+
+      - name: wal_file_accumulation
+        query: "SELECT * FROM (SELECT count(*) AS wal_segment_count FROM pg_ls_dir('pg_wal') WHERE pg_ls_dir ~ '^[0-9A-F]{24}$') AS wal WHERE wal_segment_count > 100"
+
+      - name: connection_pool_exhaustion
+        query: "SELECT CASE WHEN (SELECT count(*) FROM pg_stat_activity) >= 0.9 * (SELECT setting::int FROM pg_settings WHERE name='max_connections') THEN 1 ELSE 0 END AS pool_exhausted WHERE CASE WHEN (SELECT count(*) FROM pg_stat_activity) >= 0.9 * (SELECT setting::int FROM pg_settings WHERE name='max_connections') THEN 1 ELSE 0 END = 1"
+
+      - name: failed_login_attempts
+        query: "SELECT COUNT(*) > 5 AS suspicious_logins FROM (SELECT regexp_split_to_table(pg_read_file('log/' || filename), E'\\n') AS logline FROM (SELECT filename FROM pg_ls_dir('log') WHERE (pg_stat_file('log/' || filename)).isdir = false AND (pg_stat_file('log/' || filename)).modification >= now() - INTERVAL '1 hour') AS files) AS logs WHERE logline LIKE '%password authentication failed%'"
+
+      - name: checkpoint_frequency_issues
+        query: "SELECT EXTRACT(EPOCH FROM NOW() - COALESCE(pg_control_checkpoint().checkpoint_time, NOW())) < 60 AS checkpoints_too_frequent WHERE EXTRACT(EPOCH FROM NOW() - COALESCE(pg_control_checkpoint().checkpoint_time, NOW())) < 60"
+
+      - name: background_writer_inefficiency
+        query: "SELECT CASE WHEN buffers_clean + buffers_backend = 0 THEN 100 ELSE (buffers_clean::float / (buffers_clean + buffers_backend)) * 100 END AS bgwriter_clean_pct FROM pg_stat_bgwriter WHERE CASE WHEN buffers_clean + buffers_backend = 0 THEN 100 ELSE (buffers_clean::float / (buffers_clean + buffers_backend)) * 100 END < 50"
+
+      - name: materialized_view_refresh_lag
+        query: "SELECT EXISTS(SELECT 1 FROM (SELECT n.nspname AS schema, c.relname AS view_name, EXTRACT(EPOCH FROM (now() - pg_stat_file(pg_relation_filepath(c.oid)).modification)) AS refresh_lag_seconds FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'm' AND n.nspname NOT IN ('pg_catalog', 'information_schema')) AS mv WHERE refresh_lag_seconds > 3600)"
+
+      - name: extension_load_failure
+        query: "SELECT EXISTS(WITH latest_log AS (SELECT name AS log_name FROM pg_ls_logdir() ORDER BY modification DESC LIMIT 1), log_dir AS (SELECT setting AS log_dir FROM pg_settings WHERE name = 'log_directory') SELECT 1 FROM (SELECT regexp_split_to_table(pg_read_file(log_dir.log_dir || '/' || latest_log.log_name), E'\\n') AS line FROM latest_log CROSS JOIN log_dir) AS log_lines WHERE line LIKE '%ERROR:%' AND line LIKE '%extension%' LIMIT 1)"
+
+      - name: ssl_connection_error
+        query: "SELECT count(*) < 1 AS no_ssl_connections FROM pg_stat_ssl WHERE ssl = true"
+
+      - name: non_ssl_connections
+        query: "SELECT count(*) > 0 AS non_ssl_connections_detected FROM pg_stat_ssl WHERE ssl = false"
+
+      - name: deprecated_tls_version
+        query: "SELECT count(*) > 0 AS deprecated_tls_detected FROM pg_stat_ssl WHERE ssl = true AND version IN ('TLSv1.0','TLSv1.1')"
+
+      - name: wal_writer_commit_delay
+        query: "SELECT COUNT(*) > 10 AS wal_write_bottleneck FROM pg_stat_activity WHERE wait_event IN ('WalWrite','WALWrite','WALSync')"
+
+      - name: slow_query_impact
+        query: "SELECT COALESCE(SUM(total_exec_time), 0)/1000.0 > 5 AS high_slow_query_impact FROM pg_stat_statements WHERE mean_exec_time > 1000"
+
+      - name: query_plan_overhead_high
+        query: "SELECT COALESCE(100.0 * SUM(total_plan_time) / NULLIF(SUM(total_exec_time + total_plan_time), 0), 0) > 10 AS high_plan_overhead FROM pg_stat_statements"
+
+      - name: query_plan_creation_high
+        query: "SELECT COALESCE(SUM(plans) / NULLIF(EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - stats_reset)), 0), 0) > 0.1 AS high_plan_creation_rate FROM pg_stat_statements, pg_stat_statements_info"
+
+      - name: collation_version_mismatch
+        query: "SELECT count(*) > 0 AS mismatch_found FROM pg_collation c WHERE c.collversion <> pg_collation_actual_version(c.oid)"
+
+      - name: database_collation_mismatch
+        query: "SELECT count(*) > 0 AS mismatch_found FROM pg_database d WHERE d.datcollversion <> pg_database_collation_actual_version(d.oid)"
+
     select:
       - name: query_running_long_postgre
         query: "SELECT pid, usename FROM pg_stat_activity WHERE state = 'active' AND now() - query_start > INTERVAL '30 seconds'"
