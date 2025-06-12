@@ -319,20 +319,25 @@ fi
 printf "[SUCCESS] \`config.yaml\` file downloaded successfully.\n\n"
 
 # download `.env`` file and handle backup if it already exists
-printf "[INFO] Checking for an existing \`.env\` file ...\n"
-if [ -f "$COLLECTOR_ENV_FILE" ]; then
-    printf "[INFO] \`.env\` file found. Creating a backup ...\n"
-    mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
-    printf "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE.\n"
-fi
+# printf "[INFO] Checking for an existing \`.env\` file ...\n"
+# if [ -f "$COLLECTOR_ENV_FILE" ]; then
+#     printf "[INFO] \`.env\` file found. Creating a backup ...\n"
+#     mv "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_BACKUP_FILE"
+#     printf "[SUCCESS] Backup created as $COLLECTOR_ENV_BACKUP_FILE.\n"
+# fi
 
-printf "[INFO] Downloading the latest \`.env\` file ...\n"
-curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
-if [ $? -ne 0 ]; then
-    printf "[ERROR] Failed to download the \`.env\` file. Exiting.\n\n"
-    exit 1
+# printf "[INFO] Downloading the latest \`.env\` file ...\n"
+# curl -fsSL -o "$COLLECTOR_ENV_FILE" "$COLLECTOR_ENV_URL"
+# if [ $? -ne 0 ]; then
+#     printf "[ERROR] Failed to download the \`.env\` file. Exiting.\n\n"
+#     exit 1
+# fi
+# printf "[SUCCESS] \`.env\` file downloaded successfully.\n\n"
+
+if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
+    # create an empty .env
+    touch "$COLLECTOR_ENV_FILE"
 fi
-printf "[SUCCESS] \`.env\` file downloaded successfully.\n\n"
 
 # check private and public IPs
 if [ -z "$PRIVATE_IP" ] && [ -z "$PUBLIC_IP" ]; then
