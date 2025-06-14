@@ -1,4 +1,12 @@
 receivers:
+  incerto_clickhouse/1d:
+    collection_interval: 24h
+    endpoint: ${env:CLICKHOUSE_ENDPOINT}
+    username: ${env:CLICKHOUSE_USERNAME}
+    select:
+      - name: bad_read_write_ratio
+        query: "SELECT normalized_query_hash, any(query_id) as sample_query_id, any(user) as user, anyLast(event_time) as latest_execution_time, max(read_rows) as max_read_rows, argMax(result_rows, read_rows / result_rows) as result_rows_for_worst, max(round(read_rows / result_rows, 2)) AS worst_read_result_ratio, argMax(round(query_duration_ms / 1000, 2), read_rows / result_rows) as duration_seconds_for_worst, argMax(formatReadableSize(memory_usage), read_rows / result_rows) as memory_used_for_worst, argMax(query, read_rows / result_rows) as full_query_for_worst FROM system.query_log WHERE type = 'QueryFinish' AND query_kind = 'Select' AND event_time >= now() - INTERVAL 1 DAY AND result_rows > 0 AND read_rows > 0 AND read_rows / result_rows > 5 AND length(used_aggregate_functions) = 0 GROUP BY normalized_query_hash ORDER BY worst_read_result_ratio DESC LIMIT 1"
+        includeQueryLog: false
   incerto_clickhouse/1h:
     collection_interval: 7200s
     endpoint: ${env:CLICKHOUSE_ENDPOINT}
@@ -245,5 +253,6 @@ service:
           incerto_clickhouse/1m,
           incerto_clickhouse/5m,
           incerto_clickhouse/1h,
+          incerto_clickhouse/1d,
         ]
       exporters: [debug, otlphttp]
