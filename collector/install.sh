@@ -13,6 +13,7 @@ IMAGE_TAG="prod"
 CONTAINER_NAME="incerto-collector"
 
 COLLECTOR_CONFIG_URL="none"
+COLLECTOR_CONFIG_DIR="$(pwd)/incerto/config"
 COLLECTOR_CONFIG_FILE="config.yaml"
 COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
 
@@ -303,15 +304,15 @@ fi
 
 # download `config.yaml` file and handle backup if it already exists
 # the `config.yaml` changes depending on the type (worker vs keeper) 
-printf "[INFO] Checking for an existing \`config.yaml\` file ...\n"
-if [ -f "$COLLECTOR_CONFIG_FILE" ]; then
-    printf "[INFO] \`config.yaml\` file found. Creating a backup ...\n"
-    mv "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_BACKUP_FILE"
-    printf "[SUCCESS] Backup created as $COLLECTOR_CONFIG_BACKUP_FILE.\n"
+printf "[INFO] Checking for an existing $COLLECTOR_CONFIG_DIR dir ...\n"
+if [ ! -d "$COLLECTOR_CONFIG_DIR" ]; then
+    printf "[INFO] $COLLECTOR_CONFIG_DIR dir not found. Creating it ...\n"
+    mkdir -p "$COLLECTOR_CONFIG_DIR"
+    printf "[SUCCESS] Created $COLLECTOR_CONFIG_DIR dir.\n"
 fi
 
 printf "[INFO] Downloading the latest \`config.yaml\` file ...\n"
-curl -fsSL -o "$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
+curl -fsSL -o "$COLLECTOR_CONFIG_DIR/$COLLECTOR_CONFIG_FILE" "$COLLECTOR_CONFIG_URL"
 if [ $? -ne 0 ]; then
     printf "[ERROR] Failed to download the \`config.yaml\` file. Exiting.\n\n"
     exit 1
@@ -392,7 +393,7 @@ docker run -d --name incerto-collector \
     --memory=500m \
     --env-file $(pwd)/.env \
     --network host \
-    -v $(pwd)/config.yaml:/tmp/config.yaml \
+    -v $(pwd)/config:/tmp/config \
     -v /proc:/hostfs/proc \
     -v /:/hostfs \
     -v /var/run/docker.sock:/var/run/docker.sock:rw \
