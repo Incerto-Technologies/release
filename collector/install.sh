@@ -19,7 +19,7 @@ COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
 
 # `.env`
 COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/.env"
-COLLECTOR_ENV_FILE=".env"
+COLLECTOR_ENV_FILE="$(pwd)/incerto/.env"
 COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 
 # get url for 
@@ -391,7 +391,7 @@ printf "[INFO] Starting a new container with the latest image...\n"
 docker run -d --name incerto-collector \
     --restart=always \
     --memory=500m \
-    --env-file $(pwd)/.env \
+    --env-file $(pwd)/incerto/.env \
     --network host \
     -v $(pwd)/config:/tmp/config \
     -v /proc:/hostfs/proc \
