@@ -571,6 +571,7 @@ run_ai() {
         --network host \
         --env-file $(pwd)/ai/.env \
         -v $(pwd)/ai/logs:/app/logs:rw \
+        -v ~/.kube/config:/app/config:r \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
