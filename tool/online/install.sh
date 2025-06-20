@@ -352,33 +352,6 @@ check_docker_permissions() {
     fi
 }
 
-# update env file
-update_env_file() {
-    FILE="$1"  # The file to be updated (e.g., .env)
-    KEY="$2"   # The key to update or add (e.g., "HOST_ID")
-    VALUE="$3" # The value to set for the key
-
-    print_info "Updating $FILE with $KEY=$VALUE"
-    
-    # Check if the file exists
-    if [ ! -f "$FILE" ]; then
-        print_info "$FILE does not exist. Creating a new one."
-        echo "$KEY=$VALUE" > "$FILE"
-        print_success "$KEY added to $FILE."
-    else
-        # Check if the key already exists
-        if grep -q "^$KEY=" "$FILE"; then
-            print_info "$KEY already exists in $FILE. Updating it."
-            sed -i "s/^$KEY=.*/$KEY=$VALUE/" "$FILE"  # Update the existing value
-            print_success "$KEY updated in $FILE."
-        else
-            print_info "$KEY not found in $FILE. Adding it."
-            echo "$KEY=$VALUE" >> "$FILE"  # Append the new key-value pair with a preceeding newline
-            print_success "$KEY added to $FILE."
-        fi
-    fi
-}
-
 # force Docker cleanup
 docker_cleanup () {
     docker system prune -f
