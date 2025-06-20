@@ -38,7 +38,8 @@ COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
 
 # `.env`
 COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/.env"
-COLLECTOR_ENV_FILE="$(pwd)/.env"
+COLLECTOR_ENV_DIR="$(pwd)"
+COLLECTOR_ENV_FILE=".env"
 COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 
 # get url for 
@@ -360,9 +361,9 @@ print_success "\`config.yaml\` file downloaded successfully.\n"
 # fi
 # print_success "\`.env\` file downloaded successfully.\n\n"
 
-if [ ! -f "$COLLECTOR_ENV_FILE" ]; then
+if [ ! -f "$COLLECTOR_ENV_DIR/$COLLECTOR_ENV_FILE" ]; then
     # create an empty .env
-    touch "$COLLECTOR_ENV_FILE"
+    touch "$COLLECTOR_ENV_DIR/$COLLECTOR_ENV_FILE"
 fi
 
 # check private and public IPs
@@ -416,7 +417,7 @@ print_info "Starting a new container with the latest image..."
 docker run -d --name incerto-collector \
     --restart=always \
     --memory=500m \
-    --env-file $(pwd)/incerto/.env \
+    --env-file $(pwd)/.env \
     --network host \
     -v $(pwd)/config:/tmp/config \
     -v /proc:/hostfs/proc \
