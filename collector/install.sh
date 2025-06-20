@@ -48,7 +48,7 @@ SERVICE_URL="none"
 DATABASE="none"
 TYPE="none"
 ENDPOINT="none"
-USERNAME=""
+USERNAME="none"
 PASSWORD=""
 
 # env
@@ -89,9 +89,9 @@ while [ $# -gt 0 ]; do
             ;;
         --endpoint)
             ENDPOINT="$2"
-            if [ "$DATABASE" = "clickhouse" ]; then
+            if [ "$DATABASE" = "clickhouse" ] && [ "$ENDPOINT" = "none" ]; then
                 ENDPOINT="localhost:9000"
-            elif [ "$DATABASE" = "postgres" ]; then
+            elif [ "$DATABASE" = "postgres" ] && [ "$ENDPOINT" = "none" ]; then
                 ENDPOINT="localhost:5432"
             else
                 :
@@ -100,9 +100,9 @@ while [ $# -gt 0 ]; do
             ;;
         --username)
             USERNAME="$2"
-            if [ "$DATABASE" = "clickhouse" ]; then
+            if [ "$DATABASE" = "clickhouse" ] && [ "$USERNAME" = "none" ]; then
                 USERNAME="default"
-            elif [ "$DATABASE" = "postgres" ]; then
+            elif [ "$DATABASE" = "postgres" ] && [ "$USERNAME" = "none" ]; then
                 USERNAME="postgres"
             else
                 :
