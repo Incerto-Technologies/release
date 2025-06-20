@@ -417,9 +417,9 @@ print_info "Starting a new container with the latest image..."
 docker run -d --name incerto-collector \
     --restart=always \
     --memory=500m \
-    --env-file $(pwd)/.env \
+    --env-file $COLLECTOR_ENV_DIR/$COLLECTOR_ENV_FILE \
     --network host \
-    -v $(pwd)/config:/tmp/config \
+    -v $COLLECTOR_CONFIG_DIR:/tmp/config \
     -v /proc:/hostfs/proc \
     -v /:/hostfs \
     -v /var/run/docker.sock:/var/run/docker.sock:rw \
