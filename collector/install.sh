@@ -32,13 +32,13 @@ IMAGE_TAG="prod"
 CONTAINER_NAME="incerto-collector"
 
 COLLECTOR_CONFIG_URL="none"
-COLLECTOR_CONFIG_DIR="$(pwd)/incerto/config"
+COLLECTOR_CONFIG_DIR="$(pwd)/config"
 COLLECTOR_CONFIG_FILE="config.yaml"
 COLLECTOR_CONFIG_BACKUP_FILE="config.yaml.bak"
 
 # `.env`
 COLLECTOR_ENV_URL="https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/collector/.env"
-COLLECTOR_ENV_FILE="$(pwd)/incerto/.env"
+COLLECTOR_ENV_FILE="$(pwd)/.env"
 COLLECTOR_ENV_BACKUP_FILE=".env.bak"
 
 # get url for 
@@ -262,7 +262,7 @@ docker_cleanup () {
 # check and install jq
 install_jq() {
     if [ -x /usr/bin/jq ] || [ -x /usr/local/bin/jq ]; then
-        print_info "jq is already installed on this machine.\n\n"
+        print_info "jq is already installed on this machine.\n"
         return 0
     fi
     if [ -f /etc/os-release ]; then
