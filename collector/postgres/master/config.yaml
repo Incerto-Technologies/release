@@ -5,12 +5,25 @@ receivers:
     username: ${env:POSTGRES_USERNAME}
     password: ${env:POSTGRES_PASSWORD}
     database: postgres
+    sslmode: ${env:POSTGRES_SSLMODE}
+
+    # RDS ->
+    # endpoint: incerto-rds-postgres.cdi8uge2cx5f.ap-south-1.rds.amazonaws.com:5432
+    # username: postgres
+    # password: postgres-incerto
+    # database: postgres
+    # sslmode: require
+
+    # LOCAL ->
+    # endpoint: 0.0.0.0:5432
+    # username: postgres
+    # password: postgres
+    # database: postgres
+    # sslmode: disable
     exists:
-      - name: pg_stat_statements_activity
-        query: "SELECT query, minmax_stats_since FROM pg_stat_statements WHERE minmax_stats_since > NOW() - INTERVAL '30 minutes' and (calls > 5 or max_exec_time > 3000)"
 
       - name: pg_in_recovery
-        query: "select * from (SELECT pg_is_in_recovery()) where pg_is_in_recovery != 'f'"
+        query: "select * from (SELECT pg_is_in_recovery()) AS recovery_check where pg_is_in_recovery != 'f'"
 
       - name: wal_archiving_failed 
         query: "select last_failed_time from pg_stat_archiver where now() - interval '10 minutes' <= last_failed_time"
@@ -52,7 +65,7 @@ receivers:
         query: "SELECT 1 FROM (SELECT COUNT(*) as active_connections FROM pg_stat_activity) a, (SELECT setting::int as max_connections FROM pg_settings WHERE name = 'max_connections') b WHERE a.active_connections > (b.max_connections * 0.95)"
 
       - name: buffer_cache_hit_ratio
-        query: "SELECT 1 FROM (SELECT ROUND(SUM(blks_hit) * 100.0 / NULLIF(SUM(blks_hit) + SUM(blks_read), 0), 2) AS hit_pct FROM pg_stat_database) WHERE hit_pct < 90"
+        query: "SELECT 1 FROM (SELECT ROUND(SUM(blks_hit) * 100.0 / NULLIF(SUM(blks_hit) + SUM(blks_read), 0), 2) AS hit_pct FROM pg_stat_database) AS subquery WHERE hit_pct < 90"
 
       - name: temporary_file_usage
         query: "SELECT 1 FROM pg_stat_database WHERE temp_bytes > 0 LIMIT 1"
@@ -67,7 +80,7 @@ receivers:
         query: "SELECT 1 FROM pg_locks l JOIN pg_stat_activity a ON l.pid = a.pid WHERE NOT l.granted AND now() - a.query_start > INTERVAL '30 seconds' LIMIT 1"
 
       - name: pg_stat_statements_missing
-        query: "SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements')"
+        query: "SELECT 1 WHERE NOT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'pg_stat_statements') OR NOT EXISTS(SELECT 1 FROM pg_settings WHERE name = 'shared_preload_libraries' AND setting LIKE '%pg_stat_statements%')"
 
       - name: long_running_queries
         query: "SELECT 1 FROM pg_stat_activity WHERE state = 'active' AND now() - query_start > INTERVAL '1 minute' LIMIT 1"
@@ -120,8 +133,8 @@ receivers:
 exporters:
 
   otlphttp:
-    endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/01JX28DBA77WDWBC78QYYF92R7?domain=postgres
-    metrics_endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/01JX28DBA77WDWBC78QYYF92R7?domain=postgres
+    endpoint: http://localhost:8080/api/v1/alerts/generated-metrics/01JYBWPNJSQJR14JK102BDYBH9?domain=postgres
+    metrics_endpoint: http://localhost:8080/api/v1/alerts/generated-metrics/01JYBWPNJSQJR14JK102BDYBH9?domain=postgres
     encoding: json
     compression: none
 
