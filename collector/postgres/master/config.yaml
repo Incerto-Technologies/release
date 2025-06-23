@@ -4,8 +4,8 @@ receivers:
     endpoint: ${env:POSTGRES_ENDPOINT}
     username: ${env:POSTGRES_USERNAME}
     password: ${env:POSTGRES_PASSWORD}
-    database: postgres
-    sslmode: ${env:POSTGRES_SSLMODE}
+    database: ${env:POSTGRES_DATABASE}
+    sslmode: ${env:POSTGRES_SSLMODE} # keep 'require' for RDS and 'disable' for local
 
     # RDS ->
     # endpoint: incerto-rds-postgres.cdi8uge2cx5f.ap-south-1.rds.amazonaws.com:5432
