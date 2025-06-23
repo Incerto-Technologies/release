@@ -5,7 +5,6 @@ receivers:
     username: ${env:POSTGRES_USERNAME}
     password: ${env:POSTGRES_PASSWORD}
     database: ${env:POSTGRES_DATABASE}
-    host: ${env:POSTGRES_HOST_ID}
     sslmode: ${env:POSTGRES_SSLMODE} # keep 'require' for RDS and 'disable' for local
 
     # RDS ->
