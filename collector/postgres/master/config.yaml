@@ -4,7 +4,22 @@ receivers:
     endpoint: ${env:POSTGRES_ENDPOINT}
     username: ${env:POSTGRES_USERNAME}
     password: ${env:POSTGRES_PASSWORD}
-    database: postgres
+    database: ${env:POSTGRES_DATABASE}
+    sslmode: ${env:POSTGRES_SSLMODE} # keep 'require' for RDS and 'disable' for local
+
+    # RDS ->
+    # endpoint: incerto-rds-postgres.cdi8uge2cx5f.ap-south-1.rds.amazonaws.com:5432
+    # username: postgres
+    # password: postgres-incerto
+    # database: postgres
+    # sslmode: require
+
+    # LOCAL ->
+    # endpoint: 0.0.0.0:5432
+    # username: postgres
+    # password: postgres
+    # database: postgres
+    # sslmode: disable
     exists:
       - name: pg_stat_statements_activity
         query: "SELECT query, minmax_stats_since FROM pg_stat_statements WHERE minmax_stats_since > NOW() - INTERVAL '30 minutes' and (calls > 5 or max_exec_time > 3000)"
