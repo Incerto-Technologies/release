@@ -5,6 +5,7 @@ receivers:
     username: ${env:POSTGRES_USERNAME}
     password: ${env:POSTGRES_PASSWORD}
     database: ${env:POSTGRES_DATABASE}
+    host: ${env:POSTGRES_HOST_ID}
     sslmode: ${env:POSTGRES_SSLMODE} # keep 'require' for RDS and 'disable' for local
 
     # RDS ->
@@ -133,8 +134,8 @@ receivers:
 exporters:
 
   otlphttp:
-    endpoint: http://localhost:8080/api/v1/alerts/generated-metrics/01JYBWPNJSQJR14JK102BDYBH9?domain=postgres
-    metrics_endpoint: http://localhost:8080/api/v1/alerts/generated-metrics/01JYBWPNJSQJR14JK102BDYBH9?domain=postgres
+    endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:POSTGRES_HOST_ID}?domain=postgres
+    metrics_endpoint: ${env:SERVICE_URL}/api/v1/alerts/generated-metrics/${env:POSTGRES_HOST_ID}?domain=postgres
     encoding: json
     compression: none
 
