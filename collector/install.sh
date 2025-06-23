@@ -50,6 +50,9 @@ TYPE="none"
 ENDPOINT="none"
 USERNAME="none"
 PASSWORD=""
+POSTGRES_DATABASE="postgres"
+SSL_MODE="require"
+POSTGRES_HOST_ID="none"
 
 # env
 ENV="prod"
@@ -113,6 +116,18 @@ while [ $# -gt 0 ]; do
             PASSWORD="$2"
             shift 2
             ;;
+        --db-name)
+            POSTGRES_DATABASE="$2"
+            shift 2
+            ;;
+        --ssl-mode)
+            SSL_MODE="$2"
+            shift 2
+            ;;
+        --postgres-host-id)
+            POSTGRES_HOST_ID="$2"
+            shift 2
+            ;;
         *)
             print_error "Unknown option: $1\n"
             exit 1
@@ -121,7 +136,7 @@ while [ $# -gt 0 ]; do
 done
 
 print_info "Proceeding with using"
-printf "\n    env: $ENV \n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD\n\n"
+printf "\n    env: $ENV \n    service-url: $SERVICE_URL \n    database: $DATABASE \n    type: $TYPE \n    endpoint: $ENDPOINT \n    username: $USERNAME \n    password: $PASSWORD \n    db-name: $POSTGRES_DATABASE \n    ssl-mode: $SSL_MODE \n    postgres-host-id: $POSTGRES_HOST_ID\n\n"
 
 
 # Update image tags based on the ENV value
@@ -408,6 +423,9 @@ elif [ "$DATABASE" = "postgres" ]; then
     update_env_file "POSTGRES_ENDPOINT" "$ENDPOINT"
     update_env_file "POSTGRES_USERNAME" "$USERNAME"
     update_env_file "POSTGRES_PASSWORD" "$PASSWORD"
+    update_env_file "POSTGRES_DATABASE" "$POSTGRES_DATABASE"
+    update_env_file "POSTGRES_SSLMODE" "$SSL_MODE"
+    update_env_file "POSTGRES_HOST_ID" "$POSTGRES_HOST_ID"
 else
     print_info "Nothing to update\n"
 fi
