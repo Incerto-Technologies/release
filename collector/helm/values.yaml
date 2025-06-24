@@ -1,7 +1,19 @@
+namespace: "default"
+
 image:
   repository: public.ecr.aws/t9w7u8l8/incerto/collector
   tag: "prod"
   pullPolicy: Always
+
+nodeSelector: {}
+affinity: {}
+tolerations: []
+
+resources:
+  limits:
+    memory: 512Mi
+  requests:
+    memory: 256Mi
 
 service:
   url: "https://dev.incerto.in"
@@ -15,13 +27,3 @@ postgres:
   endpoint: "localhost:9000"
   username: "postgres"
   password: "postgres"
-
-nodeSelector: {}
-affinity: {}
-tolerations: []
-
-resources:
-  limits:
-    memory: 512Mi
-  requests:
-    memory: 256Mi
