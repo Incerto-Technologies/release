@@ -29,8 +29,12 @@ jobs:
         git config user.name "github-actions"
         git config user.email "github-actions@github.com"
 
-        # Switch to gh-pages branch (create if doesn't exist)
-        git checkout gh-pages 2>/dev/null || git checkout -b gh-pages
+        # Try to checkout existing gh-pages or create new one
+        git fetch origin gh-pages:gh-pages 2>/dev/null || git checkout --orphan gh-pages
+        git checkout gh-pages
+
+        # Clean up everything except .git
+        git rm -rf . 2>/dev/null || true
 
         # Move package to charts directory
         mkdir -p charts
@@ -44,5 +48,5 @@ jobs:
 
         # Commit and push
         git add .
-        git commit -m "Update charts" || exit 0
+        git commit -m "Update charts $(date)" || exit 0
         git push origin gh-pages
