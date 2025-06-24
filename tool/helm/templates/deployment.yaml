@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "incerto-tool.fullname" . }}
+  namespace: {{ required "A valid .Values.namespace entry required!" .Values.namespace }}
   labels:
     {{- include "incerto-tool.labels" . | nindent 4 }}
 spec:
@@ -17,8 +18,8 @@ spec:
       containers:
       # Nginx Container
       - name: nginx
-        image: {{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}
-        imagePullPolicy: {{ .Values.images.nginx.pullPolicy }}
+        image: {{ .Values.image.nginx.repository }}:{{ .Values.image.nginx.tag }}
+        imagePullPolicy: {{ .Values.image.nginx.pullPolicy }}
         ports:
         - containerPort: 80
           name: http
@@ -26,11 +27,11 @@ spec:
           name: https
         resources:
           requests:
-            memory: {{ .Values.resources.nginx.memory }}
-            cpu: {{ .Values.resources.nginx.cpu }}
+            memory: {{ .Values.resource.nginx.memory }}
+            cpu: {{ .Values.resource.nginx.cpu }}
           limits:
-            memory: {{ .Values.resources.nginx.memory }}
-            cpu: {{ .Values.resources.nginx.cpu }}
+            memory: {{ .Values.resource.nginx.memory }}
+            cpu: {{ .Values.resource.nginx.cpu }}
         volumeMounts:
         - name: nginx-config
           mountPath: /etc/nginx/conf.d/incerto.conf
@@ -58,8 +59,8 @@ spec:
 
       # Frontend Container
       - name: frontend
-        image: {{ .Values.images.frontend.repository }}:{{ include "incerto-tool.imageTag" . }}
-        imagePullPolicy: {{ .Values.images.frontend.pullPolicy }}
+        image: {{ .Values.image.frontend.repository }}:{{ include "incerto-tool.imageTag" . }}
+        imagePullPolicy: {{ .Values.image.frontend.pullPolicy }}
         ports:
         - containerPort: 3000
           name: frontend
@@ -72,9 +73,9 @@ spec:
           subPath: config.json
         resources:
           requests:
-            memory: "{{ .Values.resources.frontend.memory }}Mi"
+            memory: "{{ .Values.resource.frontend.memory }}Mi"
           limits:
-            memory: "{{ .Values.resources.frontend.memory }}Mi"
+            memory: "{{ .Values.resource.frontend.memory }}Mi"
         livenessProbe:
           httpGet:
             path: /
@@ -90,8 +91,8 @@ spec:
 
       # Backend Container
       - name: backend
-        image: {{ .Values.images.backend.repository }}:{{ include "incerto-tool.imageTag" . }}
-        imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+        image: {{ .Values.image.backend.repository }}:{{ include "incerto-tool.imageTag" . }}
+        imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
         ports:
         - containerPort: 8080
           name: backend
@@ -113,9 +114,9 @@ spec:
         {{- end }}
         resources:
           requests:
-            memory: "{{ .Values.resources.backend.memory }}Mi"
+            memory: "{{ .Values.resource.backend.memory }}Mi"
           limits:
-            memory: "{{ .Values.resources.backend.memory }}Mi"
+            memory: "{{ .Values.resource.backend.memory }}Mi"
         livenessProbe:
           httpGet:
             path: /api/health
@@ -131,8 +132,8 @@ spec:
 
       # AI Container
       - name: ai
-        image: {{ .Values.images.ai.repository }}:{{ include "incerto-tool.imageTag" . }}
-        imagePullPolicy: {{ .Values.images.ai.pullPolicy }}
+        image: {{ .Values.image.ai.repository }}:{{ include "incerto-tool.imageTag" . }}
+        imagePullPolicy: {{ .Values.image.ai.pullPolicy }}
         ports:
         - containerPort: 8000
           name: ai
@@ -146,9 +147,9 @@ spec:
         {{- end }}
         resources:
           requests:
-            memory: "{{ .Values.resources.ai.memory }}Mi"
+            memory: "{{ .Values.resource.ai.memory }}Mi"
           limits:
-            memory: "{{ .Values.resources.ai.memory }}Mi"
+            memory: "{{ .Values.resource.ai.memory }}Mi"
         livenessProbe:
           httpGet:
             path: /health

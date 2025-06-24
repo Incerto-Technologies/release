@@ -1,10 +1,21 @@
+# Kubernetes namespace for the deployment
+# Set to specific namespace name or leave as null to use default namespace
+# e.g. namespace: "incerto"
+namespace: null
+
 # Global configuration
 global:
   environment: prod  # dev or prod
-  domain: ""  # Set your domain here (e.g., dev.incerto.in)
+  domain: ""  # Set your domain here (e.g., test.incerto.in)
+
+# AWS ECR Configuration for private image pulling
+aws:
+  region: "ap-south-1"
+  accessKeyId: null     # Your AWS Access Key ID
+  secretAccessKey: null # Your AWS Secret Access Key
 
 # Image configuration
-images:
+image:
   nginx:
     repository: nginx
     tag: "1.25-alpine"
@@ -29,17 +40,16 @@ service:
     http: 80
     https: 443
 
-# Resource configuration (in MB)
-resources:
+# Resource allocation and limits for the container
+resource:
   frontend:
-    memory: "1024"
+    memory: "1024Mi"
   backend:
-    memory: "2048"
+    memory: "2048Mi"
   ai:
-    memory: "2048"
+    memory: "2048Mi"
   nginx:
-    memory: "512"
-    cpu: "100m"
+    memory: "512Mi"
 
 # Persistence configuration
 persistence:
@@ -73,14 +83,14 @@ ssl:
 # Frontend configuration (config.json content)
 frontend:
   config:
-    VITE_API_URL: "https://dev.incerto.in"
-    VITE_WS_URL: "wss://dev.incerto.in"
+    VITE_API_URL: "https://test.incerto.in"
+    VITE_WS_URL: "wss://test.incerto.in"
     VITE_ENCRYPTION_KEY: "hyedRrmuASEjf/NhN9JLQg=="
     clickhouse_access: true
     postgres_access: true
-    postgres_ws_url: "wss://dev.incerto.in/websocket_ai/"
-    clickhouse_ws_url: "wss://dev.incerto.in/websocket_ai/"
-    query_optimization_ws_url: "wss://dev.incerto.in/websocket_ai/"
+    postgres_ws_url: "wss://test.incerto.in/websocket_ai/"
+    clickhouse_ws_url: "wss://test.incerto.in/websocket_ai/"
+    query_optimization_ws_url: "wss://test.incerto.in/websocket_ai/"
 
 # Backend configuration (.env content)
 backend:
@@ -88,7 +98,7 @@ backend:
     ENVIRONMENT: "dev"
     SERVER_PORT: "8080"
     LOG_DIR: "/app/src/logs"
-    ALLOWED_CORS_ORIGINS: "https://dev.incerto.in,http://localhost:5173,http://localhost:4173,http://localhost:1323"
+    ALLOWED_CORS_ORIGINS: "https://test.incerto.in,http://localhost:5173,http://localhost:4173,http://localhost:1323"
     SCRIPTS_DIRECTORY: "/app/src/resource/scripts"
     ALERT_CONFIG_DIR_V2: "/app/src/resource/magic-pill-config"
     DATABASE_MIGRATION_DIRECTORY: "/app/src/migration/incerto"
@@ -103,7 +113,7 @@ backend:
     SLACK_WEBHOOK_URL: ""
     SLACK_TOKEN: ""
     SLACK_CHANNEL_ID: "C087DUP6ZGB"
-    FRONTEND_URL: "https://dev.incerto.in"
+    FRONTEND_URL: "https://test.incerto.in"
     MAGICPILL_ORGANIZATION_ID: "fba170a5-5a38-473b-87a2-6735bc4466f6"
     MAGICPILL_BACKEND_URL: "http://localhost:1323"
     PING_DURATION: "1m"
