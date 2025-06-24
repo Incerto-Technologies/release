@@ -107,7 +107,7 @@ spec:
             - |
               export HOST_ID=$(cat /shared/.env)
               echo "Starting collector with HOST_ID: $HOST_ID"
-              exec /app/run-script.sh
+              tail -f /dev/null
           env:
           - name: SERVICE_URL
             value: "{{ required "A valid .Values.service.url entry required!" .Values.service.url }}"
