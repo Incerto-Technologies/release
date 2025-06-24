@@ -13,7 +13,7 @@ spec:
       labels:
         {{- include "incerto-collector.selectorLabels" . | nindent 8 }}
     spec:
-      # Flexible targeting - only apply if values are set
+
       {{- if .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml .Values.nodeSelector | nindent 8 }}
@@ -37,12 +37,22 @@ spec:
             - |
               NODE_NAME=$NODE_NAME
               echo "Registering Node: $NODE_NAME"
-              
               RESPONSE=$(curl -s -f -X POST \
                 "{{ .Values.service.url }}/api/v1/register-partial-host" \
                 -H "accept: application/json" \
                 -H "Content-Type: application/json" \
-                -d "{ \"uniqueIdentifier\": \"$NODE_NAME\" }")
+                -d '{
+                  "uniqueIdentifier": "'"$NODE_NAME"'",
+                  "hostMetaData": {
+                    "deployment": "KUBERNETES",
+                    "podName": "'"$POD_NAME"'",
+                    "podUID": "'"$POD_UID"'",
+                    "podNamespace": "'"$POD_NAMESPACE"'",
+                    "podIP": "'"$POD_IP"'",
+                    "hostIP": "'"$HOST_IP"'",
+                    "nodeName": "'"$NODE_NAME"'"
+                  }
+                }')
               
               if [ $? -ne 0 ]; then
                 echo "ERROR: Failed to register node."
@@ -63,6 +73,26 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_UID
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.uid
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: HOST_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
           volumeMounts:
             - name: shared-volume
               mountPath: /shared
@@ -76,8 +106,7 @@ spec:
             - |
               export HOST_ID=$(cat /shared/.env)
               echo "Starting collector with HOST_ID: $HOST_ID"
-              # No config file needed - collector handles it internally
-              exec /collector
+              exec /app/run-script.sh
           env:
           - name: SERVICE_URL
             value: "{{ .Values.service.url }}"
@@ -91,7 +120,6 @@ spec:
             - name: shared-volume
               mountPath: /shared
           
-          # Resource limits for collector
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           
