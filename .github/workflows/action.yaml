@@ -13,6 +13,8 @@ jobs:
     - name: Checkout code
       id: checkout-code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Install Helm
       id: install-helm
@@ -23,20 +25,21 @@ jobs:
     - name: Package and Publish
       run: |
         # Setup git
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git config user.name "github-actions"
+        git config user.email "github-actions@users.noreply.github.com"
 
         # Package chart
         helm package collector/helm --destination /tmp
 
-        # Switch to gh-pages (create if doesn't exist)
-        if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+        # Check if gh-pages branch exists and switch to it
+        if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
           git checkout gh-pages
         else
           git checkout --orphan gh-pages
+          git rm -rf .
         fi
 
-        # Remove all existing chart files
+        # Remove any existing chart files (if branch existed)
         rm -f *.tgz index.yaml
 
         # Copy the new chart
