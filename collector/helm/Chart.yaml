@@ -1,5 +1,0 @@
-apiVersion: v2
-name: incerto-collector
-description: A Helm chart for Incerto Collector
-version: 1.0.0
-appVersion: "prod"
