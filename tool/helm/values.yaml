@@ -51,18 +51,18 @@ persistence:
     logs:
       size: 5Gi
     resourceScripts:
-      size: 2Gi
+      size: 5Gi
     resourcePem:
-      size: 1Gi
+      size: 5Gi
     resourceSource:
-      size: 2Gi
+      size: 5Gi
     configRbac:
-      size: 1Gi
+      size: 5Gi
   
   # AI volumes
   ai:
     logs:
-      size: 2Gi
+      size: 5Gi
 
 # SSL Configuration
 ssl:
@@ -112,6 +112,6 @@ backend:
 # AI service configuration (.env content)
 ai:
   env:
-    ANTHROPIC_API_KEY: "sk-CeWjBns6zHap2E_rMkagoZ7nA9Ly4Ko1HYAHDx6EEAqHFZsC0w-8OfnFAAA"
+    ANTHROPIC_API_KEY: ""
     SERVICE_NAME: "incerto-ai"
-    OPENAI_API_KEY: "sk-projsDhGOFCiUuWBY1P96GUN1EB2XlCZhsK0ZwgI6BVmTwlgA"
+    OPENAI_API_KEY: ""
