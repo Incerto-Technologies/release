@@ -46,8 +46,3 @@ jobs:
         git add .
         git commit -m "Update charts" || exit 0
         git push origin gh-pages
-
-    - name: Deploy Pages
-      uses: actions/deploy-pages@v2
-      with:
-        artifact_name: github-pages
