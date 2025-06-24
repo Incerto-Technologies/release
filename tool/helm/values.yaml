@@ -1,0 +1,117 @@
+# Global configuration
+global:
+  environment: prod  # dev or prod
+  domain: ""  # Set your domain here (e.g., dev.incerto.in)
+
+# Image configuration
+images:
+  nginx:
+    repository: nginx
+    tag: "1.25-alpine"
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: "434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto/frontend"
+    tag: "prod"  # Will be overridden based on environment
+    pullPolicy: Always
+  backend:
+    repository: "434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto/backend"
+    tag: "prod"  # Will be overridden based on environment
+    pullPolicy: Always
+  ai:
+    repository: "434499855633.dkr.ecr.ap-south-1.amazonaws.com/incerto/ai"
+    tag: "prod"  # Will be overridden based on environment
+    pullPolicy: Always
+
+# Service configuration
+service:
+  type: LoadBalancer
+  ports:
+    http: 80
+    https: 443
+
+# Resource configuration (in MB)
+resources:
+  frontend:
+    memory: "1024"
+  backend:
+    memory: "2048"
+  ai:
+    memory: "2048"
+  nginx:
+    memory: "512"
+    cpu: "100m"
+
+# Persistence configuration
+persistence:
+  enabled: true
+  storageClass: ""  # Use default storage class
+  
+  # Backend volumes
+  backend:
+    logs:
+      size: 5Gi
+    resourceScripts:
+      size: 2Gi
+    resourcePem:
+      size: 1Gi
+    resourceSource:
+      size: 2Gi
+    configRbac:
+      size: 1Gi
+  
+  # AI volumes
+  ai:
+    logs:
+      size: 2Gi
+
+# SSL Configuration
+ssl:
+  enabled: true
+  certificate: ""  # base64 encoded certificate
+  privateKey: ""   # base64 encoded private key
+
+# Frontend configuration (config.json content)
+frontend:
+  config:
+    VITE_API_URL: "https://dev.incerto.in"
+    VITE_WS_URL: "wss://dev.incerto.in"
+    VITE_ENCRYPTION_KEY: "hyedRrmuASEjf/NhN9JLQg=="
+    clickhouse_access: true
+    postgres_access: true
+    postgres_ws_url: "wss://dev.incerto.in/websocket_ai/"
+    clickhouse_ws_url: "wss://dev.incerto.in/websocket_ai/"
+    query_optimization_ws_url: "wss://dev.incerto.in/websocket_ai/"
+
+# Backend configuration (.env content)
+backend:
+  env:
+    ENVIRONMENT: "dev"
+    SERVER_PORT: "8080"
+    LOG_DIR: "/app/src/logs"
+    ALLOWED_CORS_ORIGINS: "https://dev.incerto.in,http://localhost:5173,http://localhost:4173,http://localhost:1323"
+    SCRIPTS_DIRECTORY: "/app/src/resource/scripts"
+    ALERT_CONFIG_DIR_V2: "/app/src/resource/magic-pill-config"
+    DATABASE_MIGRATION_DIRECTORY: "/app/src/migration/incerto"
+    DATABASE_DIRECTORY: "/app/src/resource/source"
+    AUDIT_LOGGER_PATH: "/app/src/logs"
+    AWS_REGION: "ap-south-1"
+    AWS_ACCESS_KEY_ID: ""
+    AWS_SECRET_ACCESS_KEY: ""
+    AI_AGENT_URL: "http://localhost:9797"
+    DUPLICATE_ALERT_DEADLINE: "1440m"
+    SEND_ALERT_ON: "slack"
+    SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"
+    SLACK_TOKEN: ""
+    SLACK_CHANNEL_ID: "C087DUP6ZGB"
+    FRONTEND_URL: "https://dev.incerto.in"
+    MAGICPILL_ORGANIZATION_ID: "fba170a5-5a38-473b-87a2-6735bc4466f6"
+    MAGICPILL_BACKEND_URL: "http://localhost:1323"
+    PING_DURATION: "1m"
+    KUBE_CONFIG_FILE_PATH: "/root/.kube/config"
+    
+# AI service configuration (.env content)
+ai:
+  env:
+    ANTHROPIC_API_KEY: "sk-CeWjBns6zHap2E_rMkagoZ7nA9Ly4Ko1HYAHDx6EEAqHFZsC0w-8OfnFAAA"
+    SERVICE_NAME: "incerto-ai"
+    OPENAI_API_KEY: "sk-projsDhGOFCiUuWBY1P96GUN1EB2XlCZhsK0ZwgI6BVmTwlgA"

@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "incerto-tool.fullname" . }}-nginx
+  labels:
+    {{- include "incerto-tool.labels" . | nindent 4 }}
+data:
+  incerto.conf: |
+    server {
+        server_name {{ .Values.global.domain }};
+        
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+        
+        # Frontend proxy
+        location / {
+            proxy_pass http://localhost:3000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_cache_bypass $http_upgrade;
+        }
+        
+        # Backend proxy
+        location /api/ {
+            proxy_pass http://localhost:8080;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Content-Type $http_content_type;
+            proxy_cache_bypass $http_upgrade;
+        }
+
+        # AI query optimization proxy
+        location /websocket_ai/ {
+            proxy_pass http://localhost:8000;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Content-Type $http_content_type;
+            proxy_cache_bypass $http_upgrade;
+        }
+
+        listen 443 ssl;
+        ssl_certificate /etc/ssl/certs/tls.crt;
+        ssl_certificate_key /etc/ssl/private/tls.key;
+    }
+    
+    server {
+        if ($host = {{ .Values.global.domain }}) {
+            return 301 https://$host$request_uri;
+        }
+
+        listen 80;
+        server_name {{ .Values.global.domain }};
+        return 404;
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "incerto-tool.fullname" . }}-frontend
+  labels:
+    {{- include "incerto-tool.labels" . | nindent 4 }}
+data:
+  config.json: |
+{{ .Values.frontend.config | toJson | indent 4 }}

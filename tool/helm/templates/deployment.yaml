@@ -1,0 +1,196 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "incerto-tool.fullname" . }}
+  labels:
+    {{- include "incerto-tool.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "incerto-tool.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "incerto-tool.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      # Nginx Container
+      - name: nginx
+        image: {{ .Values.images.nginx.repository }}:{{ .Values.images.nginx.tag }}
+        imagePullPolicy: {{ .Values.images.nginx.pullPolicy }}
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 443
+          name: https
+        resources:
+          requests:
+            memory: {{ .Values.resources.nginx.memory }}
+            cpu: {{ .Values.resources.nginx.cpu }}
+          limits:
+            memory: {{ .Values.resources.nginx.memory }}
+            cpu: {{ .Values.resources.nginx.cpu }}
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/incerto.conf
+          subPath: incerto.conf
+        {{- if .Values.ssl.enabled }}
+        - name: ssl-certs
+          mountPath: /etc/ssl/certs/tls.crt
+          subPath: tls.crt
+        - name: ssl-certs
+          mountPath: /etc/ssl/private/tls.key
+          subPath: tls.key
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+
+      # Frontend Container
+      - name: frontend
+        image: {{ .Values.images.frontend.repository }}:{{ include "incerto-tool.imageTag" . }}
+        imagePullPolicy: {{ .Values.images.frontend.pullPolicy }}
+        ports:
+        - containerPort: 3000
+          name: frontend
+        envFrom:
+        - secretRef:
+            name: {{ include "incerto-tool.fullname" . }}-frontend
+        volumeMounts:
+        - name: frontend-config
+          mountPath: /app/dist/config.json
+          subPath: config.json
+        resources:
+          requests:
+            memory: "{{ .Values.resources.frontend.memory }}Mi"
+          limits:
+            memory: "{{ .Values.resources.frontend.memory }}Mi"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: frontend
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: frontend
+          initialDelaySeconds: 30
+          periodSeconds: 10
+
+      # Backend Container
+      - name: backend
+        image: {{ .Values.images.backend.repository }}:{{ include "incerto-tool.imageTag" . }}
+        imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+        ports:
+        - containerPort: 8080
+          name: backend
+        envFrom:
+        - secretRef:
+            name: {{ include "incerto-tool.fullname" . }}-backend
+        volumeMounts:
+        {{- if .Values.persistence.enabled }}
+        - name: backend-logs
+          mountPath: /app/src/logs
+        - name: backend-scripts
+          mountPath: /app/src/resource/scripts/all
+        - name: backend-pem
+          mountPath: /app/src/resource/pem
+        - name: backend-source
+          mountPath: /app/src/resource/source
+        - name: backend-rbac
+          mountPath: /app/src/config/rbac
+        {{- end }}
+        resources:
+          requests:
+            memory: "{{ .Values.resources.backend.memory }}Mi"
+          limits:
+            memory: "{{ .Values.resources.backend.memory }}Mi"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: backend
+          initialDelaySeconds: 120
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: backend
+          initialDelaySeconds: 60
+          periodSeconds: 10
+
+      # AI Container
+      - name: ai
+        image: {{ .Values.images.ai.repository }}:{{ include "incerto-tool.imageTag" . }}
+        imagePullPolicy: {{ .Values.images.ai.pullPolicy }}
+        ports:
+        - containerPort: 8000
+          name: ai
+        envFrom:
+        - secretRef:
+            name: {{ include "incerto-tool.fullname" . }}-ai
+        volumeMounts:
+        {{- if .Values.persistence.enabled }}
+        - name: ai-logs
+          mountPath: /app/logs
+        {{- end }}
+        resources:
+          requests:
+            memory: "{{ .Values.resources.ai.memory }}Mi"
+          limits:
+            memory: "{{ .Values.resources.ai.memory }}Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: ai
+          initialDelaySeconds: 120
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: ai
+          initialDelaySeconds: 60
+          periodSeconds: 10
+
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: {{ include "incerto-tool.fullname" . }}-nginx
+      - name: frontend-config
+        configMap:
+          name: {{ include "incerto-tool.fullname" . }}-frontend
+      {{- if .Values.ssl.enabled }}
+      - name: ssl-certs
+        secret:
+          secretName: {{ include "incerto-tool.fullname" . }}-ssl
+      {{- end }}
+      {{- if .Values.persistence.enabled }}
+      - name: backend-logs
+        persistentVolumeClaim:
+          claimName: {{ include "incerto-tool.fullname" . }}-backend-logs
+      - name: backend-scripts
+        persistentVolumeClaim:
+          claimName: {{ include "incerto-tool.fullname" . }}-backend-scripts
+      - name: backend-pem
+        persistentVolumeClaim:
+          claimName: {{ include "incerto-tool.fullname" . }}-backend-pem
+      - name: backend-source
+        persistentVolumeClaim:
+          claimName: {{ include "incerto-tool.fullname" . }}-backend-source
+      - name: backend-rbac
+        persistentVolumeClaim:
+          claimName: {{ include "incerto-tool.fullname" . }}-backend-rbac
+      - name: ai-logs
+        persistentVolumeClaim:
+          claimName: {{ include "incerto-tool.fullname" . }}-ai-logs
+      {{- end }}
