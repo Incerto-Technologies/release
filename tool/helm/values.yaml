@@ -100,7 +100,7 @@ backend:
     AI_AGENT_URL: "http://localhost:9797"
     DUPLICATE_ALERT_DEADLINE: "1440m"
     SEND_ALERT_ON: "slack"
-    SLACK_WEBHOOK_URL: "https://hooks.slack.com/services/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"
+    SLACK_WEBHOOK_URL: ""
     SLACK_TOKEN: ""
     SLACK_CHANNEL_ID: "C087DUP6ZGB"
     FRONTEND_URL: "https://dev.incerto.in"
