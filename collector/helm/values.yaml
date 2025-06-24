@@ -1,29 +1,55 @@
-namespace: "default"
+# Kubernetes namespace for the deployment
+# Set to specific namespace name or leave as null to use default namespace
+# e.g. namespace: "clickhouse"
+namespace: null
 
+# Container image configuration for the collector service
 image:
-  repository: public.ecr.aws/t9w7u8l8/incerto/collector
+  repository: "public.ecr.aws/t9w7u8l8/incerto/collector"
   tag: "prod"
-  pullPolicy: Always
+  pullPolicy: "Always"
 
+# Node selection constraints for pod scheduling
+# Empty object means pods can be scheduled on any available node
 nodeSelector: {}
+
+# Pod affinity and anti-affinity rules for advanced scheduling
+# Empty object means no specific affinity requirements
 affinity: {}
+
+# Tolerations allow pods to be scheduled on nodes with matching taints
+# Empty array means no tolerations configured
 tolerations: []
 
+# Resource allocation and limits for the container
 resources:
   limits:
-    memory: 512Mi
+    memory: "512Mi"
   requests:
-    memory: 256Mi
+    memory: "256Mi"
 
+# External service configuration for the collector
+# e.g. service:
+#   url: "https://dev.incerto.in"
 service:
-  url: "https://dev.incerto.in"
+  url: null
 
+# ClickHouse database connection configuration
+# e.g. clickhouse:
+#   endpoint: "localhost:9000"
+#   username: "incerto"
+#   password: "incerto"
 clickhouse:
-  endpoint: "localhost:9000"
+  endpoint: null
   username: "default"
   password: ""
 
+# PostgreSQL database connection configuration
+# e.g. postgres:
+#   endpoint: "localhost:9000"
+#   username: "postgres"
+#   password: "postgres"
 postgres:
-  endpoint: "localhost:9000"
+  endpoint: null
   username: "postgres"
   password: "postgres"

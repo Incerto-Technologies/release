@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: {{ include "incerto-collector.fullname" . }}
-  namespace: {{ .Values.namespace }}
+  namespace: {{ required "A valid .Values.namespace entry required!" .Values.namespace }}
   labels:
     {{- include "incerto-collector.labels" . | nindent 4 }}
 spec:
@@ -39,7 +39,7 @@ spec:
               NODE_NAME=$NODE_NAME
               echo "Registering Node: $NODE_NAME"
               RESPONSE=$(curl -s -f -X POST \
-                "{{ .Values.service.url }}/api/v1/register-partial-host" \
+                "{{ required "A valid .Values.service.url entry required!" .Values.service.url }}/api/v1/register-partial-host" \
                 -H "accept: application/json" \
                 -H "Content-Type: application/json" \
                 -d '{
@@ -110,9 +110,9 @@ spec:
               exec /app/run-script.sh
           env:
           - name: SERVICE_URL
-            value: "{{ .Values.service.url }}"
+            value: "{{ required "A valid .Values.service.url entry required!" .Values.service.url }}"
           - name: CLICKHOUSE_ENDPOINT
-            value: "{{ .Values.clickhouse.endpoint }}"
+            value: "{{ required "A valid .Values.clickhouse.endpoint entry required!" .Values.clickhouse.endpoint }}"
           - name: CLICKHOUSE_USERNAME
             value: "{{ .Values.clickhouse.username }}"
           - name: CLICKHOUSE_PASSWORD
