@@ -78,3 +78,33 @@ metadata:
 data:
   config.json: |
 {{ .Values.frontend.config | toJson | indent 4 }}
+
+---
+# Add this new ConfigMap for backend .env
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "incerto-tool.fullname" . }}-backend-env
+  labels:
+    {{- include "incerto-tool.labels" . | nindent 4 }}
+data:
+  .env: |
+    ENVIRONMENT={{ .Values.backend.env.ENVIRONMENT }}
+    ALLOWED_CORS_ORIGINS={{ .Values.backend.env.ALLOWED_CORS_ORIGINS }}
+    {{- if .Values.backend.env.AWS_REGION }}
+    AWS_REGION={{ .Values.backend.env.AWS_REGION }}
+    {{- end }}
+    {{- if .Values.backend.env.AWS_ACCESS_KEY_ID }}
+    AWS_ACCESS_KEY_ID={{ .Values.backend.env.AWS_ACCESS_KEY_ID }}
+    {{- end }}
+    {{- if .Values.backend.env.AWS_SECRET_ACCESS_KEY }}
+    AWS_SECRET_ACCESS_KEY={{ .Values.backend.env.AWS_SECRET_ACCESS_KEY }}
+    {{- end }}
+    AI_AGENT_URL={{ .Values.backend.env.AI_AGENT_URL }}
+    {{- if .Values.backend.env.SLACK_TOKEN }}
+    SLACK_TOKEN={{ .Values.backend.env.SLACK_TOKEN }}
+    {{- end }}
+    {{- if .Values.backend.env.SLACK_CHANNEL_ID }}
+    SLACK_CHANNEL_ID={{ .Values.backend.env.SLACK_CHANNEL_ID }}
+    {{- end }}
+    FRONTEND_URL={{ .Values.backend.env.FRONTEND_URL }}

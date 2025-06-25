@@ -96,6 +96,9 @@ spec:
         - containerPort: 8080
           name: backend
         volumeMounts:
+        - name: backend-env
+          mountPath: /app/src/.env
+          subPath: .env
         {{- if .Values.persistence.enabled }}
         - name: backend-logs
           mountPath: /app/src/logs
@@ -163,6 +166,9 @@ spec:
       - name: frontend-config
         configMap:
           name: {{ include "incerto-tool.fullname" . }}-frontend
+      - name: backend-env
+        configMap:
+          name: {{ include "incerto-tool.fullname" . }}-backend-env
       {{- if .Values.ssl.enabled }}
       - name: ssl-certs
         secret:
