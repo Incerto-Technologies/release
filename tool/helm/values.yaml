@@ -16,7 +16,6 @@ aws:
 
 # Image Pull Secret configuration
 imagePullSecret:
-  create: true
   name: "ecr-secret"
 
 # Image configuration
