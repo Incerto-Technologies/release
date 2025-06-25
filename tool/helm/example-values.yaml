@@ -1,0 +1,38 @@
+# Kubernetes namespace for the deployment
+# Set to specific namespace name or leave as null to use default namespace
+# e.g. namespace: "incerto"
+namespace: "default"
+
+# Global configuration
+global:
+  domain: "test.incerto.in"         # Set your domain here (e.g., test.incerto.in)
+
+# AWS ECR Configuration for private image pulling
+aws:
+  accessKeyId: null                 # Your AWS Access Key ID
+  secretAccessKey: null             # Your AWS Secret Access Key
+
+# SSL Configuration for Nginx
+ssl:
+  enabled: true
+  certificate: null                 # base64 encoded certificate (required when enabled)
+  privateKey: null                  # base64 encoded private key (required when enabled)
+
+# Frontend configuration (config.json content)
+frontend:
+  config:
+    AI_WS_URL: "wss://test.incerto.in/websocket_ai/"
+
+# Backend configuration (.env content)
+backend:
+  env:
+    ALLOWED_CORS_ORIGINS: "https://test.incerto.in"
+    SLACK_TOKEN: null
+    SLACK_CHANNEL_ID: null
+    FRONTEND_URL: "https://test.incerto.in"
+
+# AI service configuration (.env content)
+ai:
+  env:
+    ANTHROPIC_API_KEY: null
+    OPENAI_API_KEY: null
