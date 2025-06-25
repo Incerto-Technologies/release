@@ -3,11 +3,11 @@ entries:
   incerto-collector:
   - apiVersion: v2
     appVersion: prod
-    created: "2025-06-25T09:15:15.991658426Z"
+    created: "2025-06-25T09:21:06.550672768Z"
     description: A Helm chart for Incerto Collector
-    digest: c8749d933f9724c52704510388cc31aed961b53a64b132a4668d6a9766d6c08c
+    digest: 2e9d0886fe74abec8d7d34d080cae0c486e5dba6833798cad7966f36fe72b36b
     name: incerto-collector
     urls:
     - https://Incerto-Technologies.github.io/release/incerto-collector-1.0.0.tgz
     version: 1.0.0
-generated: "2025-06-25T09:15:15.991285453Z"
+generated: "2025-06-25T09:21:06.550282101Z"
