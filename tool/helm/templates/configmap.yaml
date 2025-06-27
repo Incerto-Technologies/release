@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "incerto-tool.fullname" . }}-nginx
+  name: {{ include "incerto-tool.fullname" . }}-nginx-config
   labels:
     {{- include "incerto-tool.labels" . | nindent 4 }}
 data:
@@ -72,7 +72,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "incerto-tool.fullname" . }}-frontend
+  name: {{ include "incerto-tool.fullname" . }}-frontend-config
   labels:
     {{- include "incerto-tool.labels" . | nindent 4 }}
 data:
