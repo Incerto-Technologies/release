@@ -184,13 +184,13 @@ spec:
             memory: "{{ .Values.resource.backend.memory }}"
         livenessProbe:
           httpGet:
-            path: /
+            path: /api/health
             port: backend
           initialDelaySeconds: 120
           periodSeconds: 30
         readinessProbe:
           httpGet:
-            path: /
+            path: /api/health
             port: backend
           initialDelaySeconds: 60
           periodSeconds: 10
