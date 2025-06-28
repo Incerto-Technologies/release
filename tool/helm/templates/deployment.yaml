@@ -201,6 +201,8 @@ spec:
         imagePullPolicy: {{ .Values.image.ai.pullPolicy }}
         ports:
         - containerPort: 8000
+          name: ai-ws
+        - containerPort: 9797
           name: ai
         volumeMounts:
         - name: ai-env
