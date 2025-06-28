@@ -80,7 +80,6 @@ data:
 {{ .Values.frontend.config | toJson | indent 4 }}
 
 ---
-# Add this new ConfigMap for backend .env
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -113,7 +112,7 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "incerto-tool.fullname" . }}-ai-config
+  name: {{ include "incerto-tool.fullname" . }}-ai-env
   labels:
     {{- include "incerto-tool.labels" . | nindent 4 }}
 data:
