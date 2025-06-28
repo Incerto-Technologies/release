@@ -108,3 +108,22 @@ data:
     SLACK_CHANNEL_ID={{ .Values.backend.env.SLACK_CHANNEL_ID }}
     {{- end }}
     FRONTEND_URL={{ .Values.backend.env.FRONTEND_URL }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "incerto-tool.fullname" . }}-ai-config
+  labels:
+    {{- include "incerto-tool.labels" . | nindent 4 }}
+data:
+  .env: |
+    {{- if .Values.ai.env.SERVICE_NAME }}
+    SERVICE_NAME={{ .Values.ai.env.SERVICE_NAME }}
+    {{- end }}
+    {{- if .Values.ai.env.ANTHROPIC_API_KEY }}
+    ANTHROPIC_API_KEY={{ .Values.ai.env.ANTHROPIC_API_KEY }}
+    {{- end }}
+    {{- if .Values.ai.env.OPENAI_API_KEY }}
+    OPENAI_API_KEY={{ .Values.ai.env.OPENAI_API_KEY }}
+    {{- end }}
