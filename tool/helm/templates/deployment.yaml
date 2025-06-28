@@ -184,13 +184,13 @@ spec:
             memory: "{{ .Values.resource.backend.memory }}"
         livenessProbe:
           httpGet:
-            path: /api/health
+            path: /
             port: backend
           initialDelaySeconds: 120
           periodSeconds: 30
         readinessProbe:
           httpGet:
-            path: /api/health
+            path: /
             port: backend
           initialDelaySeconds: 60
           periodSeconds: 10
@@ -203,6 +203,9 @@ spec:
         - containerPort: 8000
           name: ai
         volumeMounts:
+        - name: ai-env
+          mountPath: /app/ai/.env
+          subPath: .env
         {{- if .Values.persistence.enabled }}
         - name: ai-logs
           mountPath: /app/logs
@@ -214,13 +217,13 @@ spec:
             memory: "{{ .Values.resource.ai.memory }}"
         livenessProbe:
           httpGet:
-            path: /health
+            path: /v1/health
             port: ai
           initialDelaySeconds: 120
           periodSeconds: 30
         readinessProbe:
           httpGet:
-            path: /health
+            path: /v1/health
             port: ai
           initialDelaySeconds: 60
           periodSeconds: 10
@@ -235,6 +238,9 @@ spec:
       - name: backend-env
         configMap:
           name: {{ include "incerto-tool.fullname" . }}-backend-env
+      - name: ai-env
+        configMap:
+          name: {{ include "incerto-tool.fullname" . }}-ai-env
       
       {{- if .Values.persistence.enabled }}
       - name: backend-scripts
