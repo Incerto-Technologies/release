@@ -39,6 +39,7 @@ image:
 
 # Service configuration
 service:
+  enabled: true
   type: LoadBalancer
   ports:
     http: 80
