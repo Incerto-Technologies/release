@@ -206,10 +206,16 @@ spec:
           name: ai-ws
         - containerPort: 9797
           name: ai
+        env:
+        {{- if .Values.ai.env.ANTHROPIC_API_KEY }}
+        - name: ANTHROPIC_API_KEY
+          value: "{{ .Values.ai.env.ANTHROPIC_API_KEY }}"
+        {{- end }}
+        {{- if .Values.ai.env.OPENAI_API_KEY }}
+        - name: OPENAI_API_KEY
+          value: "{{ .Values.ai.env.OPENAI_API_KEY }}"
+        {{- end }}
         volumeMounts:
-        - name: ai-env
-          mountPath: /app/ai/.env
-          subPath: .env
         {{- if .Values.persistence.enabled }}
         - name: ai-logs
           mountPath: /app/logs
