@@ -221,13 +221,13 @@ spec:
             memory: "{{ .Values.resource.ai.memory }}"
         livenessProbe:
           httpGet:
-            path: /v1/health
+            path: /health
             port: ai
           initialDelaySeconds: 120
           periodSeconds: 30
         readinessProbe:
           httpGet:
-            path: /v1/health
+            path: /health
             port: ai
           initialDelaySeconds: 60
           periodSeconds: 10

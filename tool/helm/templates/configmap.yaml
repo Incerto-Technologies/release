@@ -8,6 +8,10 @@ data:
   incerto.conf: |
     server {
         server_name {{ .Values.global.domain }};
+
+        listen 443 ssl;
+        ssl_certificate /etc/ssl/certs/tls.crt;
+        ssl_certificate_key /etc/ssl/private/tls.key;
         
         proxy_read_timeout 86400s;
         proxy_send_timeout 86400s;
@@ -52,10 +56,6 @@ data:
             proxy_set_header Content-Type $http_content_type;
             proxy_cache_bypass $http_upgrade;
         }
-
-        listen 443 ssl;
-        ssl_certificate /etc/ssl/certs/tls.crt;
-        ssl_certificate_key /etc/ssl/private/tls.key;
     }
     
     server {
