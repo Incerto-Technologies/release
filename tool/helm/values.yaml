@@ -59,29 +59,15 @@ resource:
 # Persistence configuration
 persistence:
   enabled: true
-  storageClass: ""                  # Use default storage class
-  
-  # Backend volumes
-  backend:
-    logs:
-      size: 5Gi
-    resourceScripts:
-      size: 5Gi
-    resourcePem:
-      size: 5Gi
-    resourceSource:
-      size: 5Gi
-    configRbac:
-      size: 5Gi
-  
-  # AI volumes
-  ai:
-    logs:
-      size: 5Gi
+  storageClass: "gp2"                  # Use default storage class
+  data:
+    size: "20Gi"  # Combined size for all backend data
+  logs:
+    size: "10Gi"   # Combined logs for both backend and AI
 
 # SSL Configuration for Nginx
 ssl:
-  enabled: true
+  enabled: false
   certificate: null                   # base64 encoded certificate (required when enabled)
   privateKey: null                    # base64 encoded private key (required when enabled)
 

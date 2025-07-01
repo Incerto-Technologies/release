@@ -1,9 +1,9 @@
 {{- if .Values.persistence.enabled }}
-# Backend Logs PVC
+# Data PVC (for all services data)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "incerto-tool.fullname" . }}-backend-logs
+  name: {{ include "incerto-tool.fullname" . }}-backend-data
   labels:
     {{- include "incerto-tool.labels" . | nindent 4 }}
 spec:
@@ -14,14 +14,14 @@ spec:
   {{- end }}
   resources:
     requests:
-      storage: {{ .Values.persistence.backend.logs.size }}
+      storage: {{ .Values.persistence.data.size | default "10Gi" }}
 
 ---
-# Backend Resource Scripts PVC
+# Logs PVC (for both backend and AI logs)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "incerto-tool.fullname" . }}-backend-rbac
+  name: {{ include "incerto-tool.fullname" . }}-logs
   labels:
     {{- include "incerto-tool.labels" . | nindent 4 }}
 spec:
@@ -32,77 +32,5 @@ spec:
   {{- end }}
   resources:
     requests:
-      storage: {{ .Values.persistence.backend.configRbac.size }}
-
----
-# Backend Resource Scripts PVC
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "incerto-tool.fullname" . }}-backend-scripts
-  labels:
-    {{- include "incerto-tool.labels" . | nindent 4 }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  {{- if .Values.persistence.storageClass }}
-  storageClassName: {{ .Values.persistence.storageClass }}
-  {{- end }}
-  resources:
-    requests:
-      storage: {{ .Values.persistence.backend.resourceScripts.size }}
-
----
-# Backend Resource PEM PVC
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "incerto-tool.fullname" . }}-backend-pem
-  labels:
-    {{- include "incerto-tool.labels" . | nindent 4 }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  {{- if .Values.persistence.storageClass }}
-  storageClassName: {{ .Values.persistence.storageClass }}
-  {{- end }}
-  resources:
-    requests:
-      storage: {{ .Values.persistence.backend.resourcePem.size }}
-
----
-# Backend Resource Source PVC
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "incerto-tool.fullname" . }}-backend-source
-  labels:
-    {{- include "incerto-tool.labels" . | nindent 4 }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  {{- if .Values.persistence.storageClass }}
-  storageClassName: {{ .Values.persistence.storageClass }}
-  {{- end }}
-  resources:
-    requests:
-      storage: {{ .Values.persistence.backend.resourceSource.size }}
-
----
-# AI PVCs
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: {{ include "incerto-tool.fullname" . }}-ai-logs
-  labels:
-    {{- include "incerto-tool.labels" . | nindent 4 }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  {{- if .Values.persistence.storageClass }}
-  storageClassName: {{ .Values.persistence.storageClass }}
-  {{- end }}
-  resources:
-    requests:
-      storage: {{ .Values.persistence.ai.logs.size }}
+      storage: {{ .Values.persistence.logs.size | default "10Gi" }}
 {{- end }}

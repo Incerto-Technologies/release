@@ -28,45 +28,45 @@ spec:
           - |
             echo "Checking volume initialization status..."
             
+            # Create directory structure
+            mkdir -p /mnt/data/{rbac,scripts,pem,source}
+            mkdir -p /mnt/logs/{backend,ai}
+            
             # RBAC: Initialize ONLY if never initialized before
-            if [ ! -f "/mnt/rbac/.initialized" ]; then
+            if [ ! -f "/mnt/data/rbac/.initialized" ]; then
               echo "FIRST RUN: Initializing config/rbac from container image..."
-              mkdir -p /mnt/rbac
-              cp -r /app/src/config/rbac/* /mnt/rbac/ 2>/dev/null || echo "No rbac files in image"
-              touch /mnt/rbac/.initialized
+              cp -r /app/src/config/rbac/* /mnt/data/rbac/ 2>/dev/null || echo "No rbac files in image"
+              touch /mnt/data/rbac/.initialized
               echo "✓ RBAC initialized from image"
             else
               echo "✓ RBAC already initialized - preserving ALL user changes"
             fi
             
             # Scripts: Initialize ONLY if never initialized before
-            if [ ! -f "/mnt/scripts/.initialized" ]; then
+            if [ ! -f "/mnt/data/scripts/.initialized" ]; then
               echo "FIRST RUN: Initializing resource/scripts from container image..."
-              mkdir -p /mnt/scripts
-              cp -r /app/src/resource/scripts/all/* /mnt/scripts/ 2>/dev/null || echo "No scripts in image"
-              touch /mnt/scripts/.initialized
+              cp -r /app/src/resource/scripts/all/* /mnt/data/scripts/ 2>/dev/null || echo "No scripts in image"
+              touch /mnt/data/scripts/.initialized
               echo "✓ Scripts initialized from image"
             else
               echo "✓ Scripts already initialized - preserving ALL user changes"
             fi
             
             # PEM: Initialize ONLY if never initialized before
-            if [ ! -f "/mnt/pem/.initialized" ]; then
+            if [ ! -f "/mnt/data/pem/.initialized" ]; then
               echo "FIRST RUN: Initializing resource/pem from container image..."
-              mkdir -p /mnt/pem
-              cp -r /app/src/resource/pem/* /mnt/pem/ 2>/dev/null || echo "No pem files in image"
-              touch /mnt/pem/.initialized
+              cp -r /app/src/resource/pem/* /mnt/data/pem/ 2>/dev/null || echo "No pem files in image"
+              touch /mnt/data/pem/.initialized
               echo "✓ PEM initialized from image"
             else
               echo "✓ PEM already initialized - preserving ALL user changes"
             fi
             
             # Source: Initialize ONLY if never initialized before
-            if [ ! -f "/mnt/source/.initialized" ]; then
+            if [ ! -f "/mnt/data/source/.initialized" ]; then
               echo "FIRST RUN: Initializing resource/source from container image..."
-              mkdir -p /mnt/source
-              cp -r /app/src/resource/source/* /mnt/source/ 2>/dev/null || echo "No source files in image"
-              touch /mnt/source/.initialized
+              cp -r /app/src/resource/source/* /mnt/data/source/ 2>/dev/null || echo "No source files in image"
+              touch /mnt/data/source/.initialized
               echo "✓ Source initialized from image"
             else
               echo "✓ Source already initialized - preserving ALL user changes"
@@ -75,14 +75,12 @@ spec:
             echo "=== VOLUME STATUS ==="
             echo "All volumes respect user changes - files added, modified, or deleted by users are preserved forever"
         volumeMounts:
-        - name: backend-rbac
-          mountPath: /mnt/rbac
-        - name: backend-scripts
-          mountPath: /mnt/scripts
-        - name: backend-pem
-          mountPath: /mnt/pem
-        - name: backend-source
-          mountPath: /mnt/source
+        {{- if .Values.persistence.enabled }}
+        - name: backend-data
+          mountPath: /mnt/data
+        - name: logs
+          mountPath: /mnt/logs
+        {{- end }}
       containers:
       # Nginx Container
       - name: nginx
@@ -168,16 +166,21 @@ spec:
           mountPath: /app/src/.env
           subPath: .env
         {{- if .Values.persistence.enabled }}
-        - name: backend-logs
+        - name: logs
           mountPath: /app/src/logs
-        - name: backend-scripts
+          subPath: backend
+        - name: backend-data
           mountPath: /app/src/resource/scripts/all
-        - name: backend-pem
+          subPath: scripts
+        - name: backend-data
           mountPath: /app/src/resource/pem
-        - name: backend-source
+          subPath: pem
+        - name: backend-data
           mountPath: /app/src/resource/source
-        - name: backend-rbac
+          subPath: source
+        - name: backend-data
           mountPath: /app/src/config/rbac
+          subPath: rbac
         {{- end }}
         resources:
           requests:
@@ -217,8 +220,9 @@ spec:
         {{- end }}
         volumeMounts:
         {{- if .Values.persistence.enabled }}
-        - name: ai-logs
+        - name: logs
           mountPath: /app/logs
+          subPath: ai
         {{- end }}
         resources:
           requests:
@@ -253,24 +257,12 @@ spec:
           name: {{ include "incerto-tool.fullname" . }}-ai-env
       
       {{- if .Values.persistence.enabled }}
-      - name: backend-scripts
+      - name: backend-data
         persistentVolumeClaim:
-          claimName: {{ include "incerto-tool.fullname" . }}-backend-scripts
-      - name: backend-pem
+          claimName: {{ include "incerto-tool.fullname" . }}-backend-data
+      - name: logs
         persistentVolumeClaim:
-          claimName: {{ include "incerto-tool.fullname" . }}-backend-pem
-      - name: backend-source
-        persistentVolumeClaim:
-          claimName: {{ include "incerto-tool.fullname" . }}-backend-source
-      - name: backend-rbac
-        persistentVolumeClaim:
-          claimName: {{ include "incerto-tool.fullname" . }}-backend-rbac
-      - name: backend-logs
-        persistentVolumeClaim:
-          claimName: {{ include "incerto-tool.fullname" . }}-backend-logs
-      - name: ai-logs
-        persistentVolumeClaim:
-          claimName: {{ include "incerto-tool.fullname" . }}-ai-logs
+          claimName: {{ include "incerto-tool.fullname" . }}-logs
       {{- end }}
 
       {{- if .Values.ssl.enabled }}
@@ -278,4 +270,3 @@ spec:
         secret:
           secretName: {{ include "incerto-tool.fullname" . }}-ssl
       {{- end }}
-      
