@@ -15,8 +15,6 @@ spec:
       labels:
         {{- include "incerto-tool.selectorLabels" . | nindent 8 }}
     spec:
-      hostNetwork: true
-      dnsPolicy: ClusterFirstWithHostNet
       {{- if .Values.imagePullSecret.name }}
       imagePullSecrets:
         - name: {{ .Values.imagePullSecret.name }}
@@ -93,8 +91,10 @@ spec:
         ports:
         - containerPort: 80
           name: http
+          protocol: TCP
         - containerPort: 443
           name: https
+          protocol: TCP
         resources:
           requests:
             memory: {{ .Values.resource.nginx.memory }}

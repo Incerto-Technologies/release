@@ -40,7 +40,7 @@ image:
 # Service configuration
 service:
   enabled: true
-  type: LoadBalancer
+  type: ClusterIP
   ports:
     http: 80
     https: 443
@@ -90,20 +90,20 @@ frontend:
   config:
     CLICKHOUSE_ACCESS: true,
     POSTGRES_ACCESS: true,
-    AI_WS_URL: "wss://test.incerto.in/websocket_ai/"
+    AI_WS_URL: "wss://{{ .Values.global.domain }}/websocket_ai/" 
 
 # Backend configuration (.env content)
 backend:
   env:
     ENVIRONMENT: "prod"
-    ALLOWED_CORS_ORIGINS: "https://test.incerto.in"
+    ALLOWED_CORS_ORIGINS: "https://{{ .Values.global.domain }}"
     AWS_REGION: ""                  # only valid for AWS setups to pull ec2 list
     AWS_ACCESS_KEY_ID: ""           # only valid for AWS setups to pull ec2 list
     AWS_SECRET_ACCESS_KEY: ""       # only valid for AWS setups to pull ec2 list
-    AI_AGENT_URL: "http://localhost:9797"
+    AI_AGENT_URL: "http://127.0.0.1:9797"
     SLACK_TOKEN: null
     SLACK_CHANNEL_ID: null
-    FRONTEND_URL: "https://test.incerto.in"
+    FRONTEND_URL: "https://{{ .Values.global.domain }}"
 
 # AI service configuration (.env content)
 ai:
