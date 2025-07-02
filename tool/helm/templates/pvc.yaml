@@ -1,11 +1,16 @@
 {{- if .Values.persistence.enabled }}
-# Data PVC (for all services data)
+# Single PVC for all application data
+# This includes: rbac, scripts, pem, source, logs, and sync metadata
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: {{ include "incerto-tool.fullname" . }}-backend-data
+  namespace: {{ required "A valid .Values.namespace entry required!" .Values.namespace }}
   labels:
     {{- include "incerto-tool.labels" . | nindent 4 }}
+    component: storage
+  annotations:
+    helm.sh/resource-policy: keep  # Prevent PVC deletion on helm uninstall
 spec:
   accessModes:
     - ReadWriteOnce
@@ -14,23 +19,136 @@ spec:
   {{- end }}
   resources:
     requests:
-      storage: {{ .Values.persistence.data.size | default "10Gi" }}
+      storage: {{ .Values.persistence.size | default "20Gi" }}
 
 ---
-# Logs PVC (for both backend and AI logs)
+# ConfigMap for monitoring and troubleshooting
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: ConfigMap
 metadata:
-  name: {{ include "incerto-tool.fullname" . }}-logs
+  name: {{ include "incerto-tool.fullname" . }}-storage-info
+  namespace: {{ required "A valid .Values.namespace entry required!" .Values.namespace }}
   labels:
     {{- include "incerto-tool.labels" . | nindent 4 }}
-spec:
-  accessModes:
-    - ReadWriteOnce
-  {{- if .Values.persistence.storageClass }}
-  storageClassName: {{ .Values.persistence.storageClass }}
-  {{- end }}
-  resources:
-    requests:
-      storage: {{ .Values.persistence.logs.size | default "10Gi" }}
+data:
+  README.md: |
+    # Incerto Storage Management
+    
+    ## Directory Structure
+    ```
+    /persistent/
+    ├── rbac/              # RBAC configuration files
+    │   ├── .sync_info     # Sync metadata
+    │   ├── .conflicts.log # Conflict log (if any)
+    │   └── *.conf         # Config files
+    ├── scripts/           # Resource scripts
+    ├── pem/              # PEM files
+    ├── source/           # Source files
+    └── logs/
+        └── backend/       # Backend service logs (AI logs are not persisted)
+    ```
+    
+    ## Conflict Resolution
+    
+    When upgrading to a new image version, if you've modified files that were
+    also updated in the new image, conflicts will be detected:
+    
+    1. Your modified version stays as the active file
+    2. New version is saved as `filename.new`
+    3. Conflict is logged in `.conflicts.log`
+    
+    ### Example Resolution:
+    ```bash
+    # Check conflicts
+    kubectl exec -it deployment/{{ include "incerto-tool.fullname" . }} -c backend -- \
+      find /persistent -name ".conflicts.log" -exec cat {} \;
+    
+    # Compare files
+    kubectl exec -it deployment/{{ include "incerto-tool.fullname" . }} -c backend -- \
+      diff /persistent/rbac/model.conf /persistent/rbac/model.conf.new
+    
+    # Apply new version if desired
+    kubectl exec -it deployment/{{ include "incerto-tool.fullname" . }} -c backend -- \
+      mv /persistent/rbac/model.conf.new /persistent/rbac/model.conf
+    ```
+    
+    ## Backup Information
+    
+    User-created files (files not present in the original image) are automatically
+    backed up to `.backup_<timestamp>` directories during sync operations.
+    
+    ## Manual Sync Trigger
+    
+    To manually trigger a sync (useful after resolving conflicts):
+    ```bash
+    kubectl delete pod -l app.kubernetes.io/name={{ include "incerto-tool.name" . }}
+    ```
+    
+    ## Monitoring Sync Status
+    
+    Check sync information:
+    ```bash
+    kubectl exec -it deployment/{{ include "incerto-tool.fullname" . }} -c backend -- \
+      find /persistent -name ".sync_info" -exec echo "=== {} ===" \; -exec cat {} \;
+    ```
+
+  troubleshooting.sh: |
+    #!/bin/bash
+    # Troubleshooting script for storage issues
+    
+    echo "=== Incerto Storage Diagnostics ==="
+    echo ""
+    
+    echo "📁 Directory Structure:"
+    find /persistent -type d | head -20
+    echo ""
+    
+    echo "📊 Sync Status:"
+    for dir in rbac scripts pem source; do
+      if [ -f "/persistent/$dir/.sync_info" ]; then
+        echo "  $dir:"
+        cat "/persistent/$dir/.sync_info" | sed 's/^/    /'
+      else
+        echo "  $dir: NOT SYNCED"
+      fi
+    done
+    echo ""
+    
+    echo "⚠️  Active Conflicts:"
+    conflict_count=0
+    for conflict_file in $(find /persistent -name ".conflicts.log" 2>/dev/null); do
+      if [ -s "$conflict_file" ]; then
+        echo "  $(dirname "$conflict_file"):"
+        tail -5 "$conflict_file" | sed 's/^/    /'
+        conflict_count=$((conflict_count + 1))
+      fi
+    done
+    
+    if [ $conflict_count -eq 0 ]; then
+      echo "  ✅ No conflicts found"
+    fi
+    echo ""
+    
+    echo "🔄 .new Files (unresolved updates):"
+    new_files=$(find /persistent -name "*.new" 2>/dev/null)
+    if [ -n "$new_files" ]; then
+      echo "$new_files" | sed 's/^/  /'
+    else
+      echo "  ✅ No .new files found"
+    fi
+    echo ""
+    
+    echo "💾 Storage Usage:"
+    du -sh /persistent/* 2>/dev/null | sed 's/^/  /' || echo "  Unable to calculate storage usage"
+    echo ""
+    
+    echo "🔗 Symlink Status:"
+    for link in /app/src/config/rbac /app/src/resource/scripts/all /app/src/resource/pem /app/src/resource/source /app/src/logs; do
+      if [ -L "$link" ]; then
+        target=$(readlink "$link")
+        echo "  ✅ $link -> $target"
+      else
+        echo "  ❌ $link (not a symlink or missing)"
+      fi
+    done
 {{- end }}

@@ -20,67 +20,163 @@ spec:
         - name: {{ .Values.imagePullSecret.name }}
       {{- end }}
       initContainers:
-      - name: populate-volumes
+      - name: setup-volumes
         image: {{ .Values.image.backend.repository }}:{{ include "incerto-tool.imageTag" . }}
         imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
         command: ["/bin/sh", "-c"]
+        env:
+        - name: IMAGE_TAG
+          value: "{{ include "incerto-tool.imageTag" . }}"
         args:
           - |
-            echo "Checking volume initialization status..."
+            echo "Starting advanced volume synchronization..."
+            echo "Image tag: $IMAGE_TAG"
             
-            # Create directory structure
-            mkdir -p /mnt/data/{rbac,scripts,pem,source}
-            mkdir -p /mnt/logs/{backend,ai}
+            # Create base directory structure
+            mkdir -p /persistent/rbac
+            mkdir -p /persistent/scripts  
+            mkdir -p /persistent/pem
+            mkdir -p /persistent/source
+            mkdir -p /persistent/logs/backend
             
-            # RBAC: Initialize ONLY if never initialized before
-            if [ ! -f "/mnt/data/rbac/.initialized" ]; then
-              echo "FIRST RUN: Initializing config/rbac from container image..."
-              cp -r /app/src/config/rbac/* /mnt/data/rbac/ 2>/dev/null || echo "No rbac files in image"
-              touch /mnt/data/rbac/.initialized
-              echo "✓ RBAC initialized from image"
+            # Get current image version/tag and content checksum
+            IMAGE_VERSION="${IMAGE_TAG:-unknown}"
+            IMAGE_CHECKSUM=$(find /app/src/config /app/src/resource -type f -exec md5sum {} \; 2>/dev/null | sort | md5sum | cut -d' ' -f1)
+            
+            echo "Image version: $IMAGE_VERSION"
+            echo "Image content checksum: $IMAGE_CHECKSUM"
+            
+            # Function to perform smart sync with conflict detection
+            smart_sync() {
+              local src_dir="$1"
+              local dest_dir="$2" 
+              local name="$3"
+              
+              echo "=== Smart syncing $name ==="
+              
+              if [ ! -d "$src_dir" ]; then
+                echo "Source $src_dir not found, skipping"
+                return
+              fi
+              
+              mkdir -p "$dest_dir"
+              
+              # Check if this is first deployment
+              if [ ! -f "$dest_dir/.sync_info" ]; then
+                echo "First deployment: copying all files"
+                cp -r "$src_dir"/* "$dest_dir/" 2>/dev/null || true
+                echo "version=$IMAGE_VERSION" > "$dest_dir/.sync_info"
+                echo "checksum=$IMAGE_CHECKSUM" >> "$dest_dir/.sync_info"
+                echo "first_sync=$(date -Iseconds)" >> "$dest_dir/.sync_info"
+                echo "=== $name first sync completed ==="
+                return
+              fi
+              
+              # Read previous sync info
+              prev_version=$(grep "^version=" "$dest_dir/.sync_info" 2>/dev/null | cut -d'=' -f2)
+              prev_checksum=$(grep "^checksum=" "$dest_dir/.sync_info" 2>/dev/null | cut -d'=' -f2)
+              
+              echo "Previous version: $prev_version"
+              echo "Previous checksum: $prev_checksum"
+              
+              # If same version/checksum, skip
+              if [ "$IMAGE_CHECKSUM" = "$prev_checksum" ]; then
+                echo "No changes in image files, skipping sync"
+                echo "=== $name sync skipped (no changes) ==="
+                return
+              fi
+              
+              echo "Image content changed, performing smart sync..."
+              
+              # Create backup directory for user files (if needed)
+              backup_dir="$dest_dir/.backup_$(date +%s)"
+              need_backup=false
+              
+              # Find files that exist in destination but not in source (user-created files)
+              find "$dest_dir" -type f ! -path "$dest_dir/.*" 2>/dev/null | while read dest_file; do
+                rel_path="${dest_file#$dest_dir/}"
+                src_file="$src_dir/$rel_path"
+                
+                if [ ! -f "$src_file" ]; then
+                  if [ "$need_backup" = "false" ]; then
+                    mkdir -p "$backup_dir"
+                    need_backup=true
+                  fi
+                  echo "  Backing up user-created file: $rel_path"
+                  mkdir -p "$(dirname "$backup_dir/$rel_path")"
+                  cp "$dest_file" "$backup_dir/$rel_path"
+                fi
+              done
+              
+              # Copy new/updated files from source, preserving user modifications
+              conflicts_found=false
+              find "$src_dir" -type f 2>/dev/null | while read src_file; do
+                rel_path="${src_file#$src_dir/}"
+                dest_file="$dest_dir/$rel_path"
+                
+                if [ ! -f "$dest_file" ]; then
+                  echo "  Adding new file: $rel_path"
+                  mkdir -p "$(dirname "$dest_file")"
+                  cp "$src_file" "$dest_file"
+                else
+                  # File exists, check if user modified it
+                  if cmp -s "$src_file" "$dest_file"; then
+                    echo "  File unchanged: $rel_path"
+                  else
+                    # File was modified, create .new version and log conflict
+                    echo "  CONFLICT: $rel_path (user modified, creating .new version)"
+                    cp "$src_file" "$dest_file.new"
+                    echo "$(date -Iseconds) CONFLICT: $rel_path - user version kept, new version saved as $rel_path.new" >> "$dest_dir/.conflicts.log"
+                    conflicts_found=true
+                  fi
+                fi
+              done
+              
+              # Update sync info
+              echo "version=$IMAGE_VERSION" > "$dest_dir/.sync_info"
+              echo "checksum=$IMAGE_CHECKSUM" >> "$dest_dir/.sync_info"
+              echo "last_sync=$(date -Iseconds)" >> "$dest_dir/.sync_info"
+              echo "previous_version=$prev_version" >> "$dest_dir/.sync_info"
+              
+              echo "=== $name sync completed ==="
+            }
+            
+            # Perform smart sync for all directories
+            smart_sync "/app/src/config/rbac" "/persistent/rbac" "RBAC"
+            smart_sync "/app/src/resource/scripts/all" "/persistent/scripts" "Scripts"
+            smart_sync "/app/src/resource/pem" "/persistent/pem" "PEM"  
+            smart_sync "/app/src/resource/source" "/persistent/source" "Source"
+            
+            echo ""
+            echo "🎯 All synchronization completed!"
+            
+            # Show conflicts summary if any
+            if find /persistent -name ".conflicts.log" -size +0c 2>/dev/null | grep -q .; then
+              echo ""
+              echo "⚠️  CONFLICTS DETECTED:"
+              find /persistent -name ".conflicts.log" -exec cat {} \;
+              echo ""
+              echo "💡 Check .new files and resolve conflicts manually"
+              echo "   Example: compare rbac/model.conf with rbac/model.conf.new"
             else
-              echo "✓ RBAC already initialized - preserving ALL user changes"
+              echo "✅ No conflicts detected"
             fi
             
-            # Scripts: Initialize ONLY if never initialized before
-            if [ ! -f "/mnt/data/scripts/.initialized" ]; then
-              echo "FIRST RUN: Initializing resource/scripts from container image..."
-              cp -r /app/src/resource/scripts/all/* /mnt/data/scripts/ 2>/dev/null || echo "No scripts in image"
-              touch /mnt/data/scripts/.initialized
-              echo "✓ Scripts initialized from image"
-            else
-              echo "✓ Scripts already initialized - preserving ALL user changes"
-            fi
-            
-            # PEM: Initialize ONLY if never initialized before
-            if [ ! -f "/mnt/data/pem/.initialized" ]; then
-              echo "FIRST RUN: Initializing resource/pem from container image..."
-              cp -r /app/src/resource/pem/* /mnt/data/pem/ 2>/dev/null || echo "No pem files in image"
-              touch /mnt/data/pem/.initialized
-              echo "✓ PEM initialized from image"
-            else
-              echo "✓ PEM already initialized - preserving ALL user changes"
-            fi
-            
-            # Source: Initialize ONLY if never initialized before
-            if [ ! -f "/mnt/data/source/.initialized" ]; then
-              echo "FIRST RUN: Initializing resource/source from container image..."
-              cp -r /app/src/resource/source/* /mnt/data/source/ 2>/dev/null || echo "No source files in image"
-              touch /mnt/data/source/.initialized
-              echo "✓ Source initialized from image"
-            else
-              echo "✓ Source already initialized - preserving ALL user changes"
-            fi
-            
-            echo "=== VOLUME STATUS ==="
-            echo "All volumes respect user changes - files added, modified, or deleted by users are preserved forever"
+            echo ""
+            echo "📊 Sync Summary:"
+            for dir in rbac scripts pem source; do
+              if [ -f "/persistent/$dir/.sync_info" ]; then
+                version=$(grep "^version=" "/persistent/$dir/.sync_info" | cut -d'=' -f2)
+                last_sync=$(grep "^last_sync=" "/persistent/$dir/.sync_info" | cut -d'=' -f2)
+                echo "  $dir: version $version (synced: $last_sync)"
+              fi
+            done
         volumeMounts:
         {{- if .Values.persistence.enabled }}
         - name: backend-data
-          mountPath: /mnt/data
-        - name: logs
-          mountPath: /mnt/logs
+          mountPath: /persistent
         {{- end }}
+        
       containers:
       # Nginx Container
       - name: nginx
@@ -158,6 +254,26 @@ spec:
       - name: backend
         image: {{ .Values.image.backend.repository }}:{{ include "incerto-tool.imageTag" . }}
         imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Setting up backend runtime environment..."
+            
+            # Create symlinks from application directories to persistent storage
+            rm -rf /app/src/config/rbac
+            rm -rf /app/src/resource/scripts/all
+            rm -rf /app/src/resource/pem  
+            rm -rf /app/src/resource/source
+            rm -rf /app/src/logs
+            
+            ln -sf /persistent/rbac /app/src/config/rbac
+            ln -sf /persistent/scripts /app/src/resource/scripts/all
+            ln -sf /persistent/pem /app/src/resource/pem
+            ln -sf /persistent/source /app/src/resource/source
+            ln -sf /persistent/logs/backend /app/src/logs
+            
+            echo "Symlinks created, starting backend..."
+            exec /app/src/backend.bin
         ports:
         - containerPort: 8080
           name: backend
@@ -166,21 +282,8 @@ spec:
           mountPath: /app/src/.env
           subPath: .env
         {{- if .Values.persistence.enabled }}
-        - name: logs
-          mountPath: /app/src/logs
-          subPath: backend
         - name: backend-data
-          mountPath: /app/src/resource/scripts/all
-          subPath: scripts
-        - name: backend-data
-          mountPath: /app/src/resource/pem
-          subPath: pem
-        - name: backend-data
-          mountPath: /app/src/resource/source
-          subPath: source
-        - name: backend-data
-          mountPath: /app/src/config/rbac
-          subPath: rbac
+          mountPath: /persistent
         {{- end }}
         resources:
           requests:
@@ -218,12 +321,6 @@ spec:
         - name: OPENAI_API_KEY
           value: "{{ .Values.ai.env.OPENAI_API_KEY }}"
         {{- end }}
-        volumeMounts:
-        {{- if .Values.persistence.enabled }}
-        - name: logs
-          mountPath: /app/logs
-          subPath: ai
-        {{- end }}
         resources:
           requests:
             memory: "{{ .Values.resource.ai.memory }}"
@@ -260,9 +357,6 @@ spec:
       - name: backend-data
         persistentVolumeClaim:
           claimName: {{ include "incerto-tool.fullname" . }}-backend-data
-      - name: logs
-        persistentVolumeClaim:
-          claimName: {{ include "incerto-tool.fullname" . }}-logs
       {{- end }}
 
       {{- if .Values.ssl.enabled }}

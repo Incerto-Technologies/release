@@ -8,12 +8,6 @@ global:
   environment: prod                 # dev or prod
   domain: ""                        # Set your domain here (e.g., test.incerto.in)
 
-# AWS ECR Configuration for private image pulling
-aws:
-  region: "ap-south-1"
-  accessKeyId: null                 # Your AWS Access Key ID
-  secretAccessKey: null             # Your AWS Secret Access Key
-
 # Image Pull Secret configuration
 imagePullSecret:
   name: "ecr-secret"
@@ -59,17 +53,8 @@ resource:
 # Persistence configuration
 persistence:
   enabled: true
-  storageClass: "gp2"                  # Use default storage class
-  data:
-    size: "20Gi"  # Combined size for all backend data
-  logs:
-    size: "10Gi"   # Combined logs for both backend and AI
-
-# SSL Configuration for Nginx
-ssl:
-  enabled: false
-  certificate: null                   # base64 encoded certificate (required when enabled)
-  privateKey: null                    # base64 encoded private key (required when enabled)
+  storageClass: "gp2"                   # Use default storage class
+  size: "32Gi"                          # Combined size for all backend data
 
 # Frontend configuration (config.json content)
 frontend:
