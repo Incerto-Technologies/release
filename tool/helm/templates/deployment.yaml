@@ -200,14 +200,6 @@ spec:
         - name: nginx-config
           mountPath: /etc/nginx/conf.d/incerto.conf
           subPath: incerto.conf
-        {{- if .Values.ssl.enabled }}
-        - name: ssl-certs
-          mountPath: /etc/ssl/certs/tls.crt
-          subPath: tls.crt
-        - name: ssl-certs
-          mountPath: /etc/ssl/private/tls.key
-          subPath: tls.key
-        {{- end }}
         livenessProbe:
           httpGet:
             path: /
@@ -340,6 +332,7 @@ spec:
           periodSeconds: 10
 
       volumes:
+      # .env or config.yaml or config.json
       - name: nginx-config
         configMap:
           name: {{ include "incerto-tool.fullname" . }}-nginx-config
@@ -352,15 +345,9 @@ spec:
       - name: ai-env
         configMap:
           name: {{ include "incerto-tool.fullname" . }}-ai-env
-      
+      # volume for persistent data
       {{- if .Values.persistence.enabled }}
       - name: backend-data
         persistentVolumeClaim:
           claimName: {{ include "incerto-tool.fullname" . }}-backend-data
-      {{- end }}
-
-      {{- if .Values.ssl.enabled }}
-      - name: ssl-certs
-        secret:
-          secretName: {{ include "incerto-tool.fullname" . }}-ssl
       {{- end }}
