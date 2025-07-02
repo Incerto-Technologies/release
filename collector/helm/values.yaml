@@ -34,6 +34,9 @@ resources:
 service:
   url: null
 
+k8s:
+  service: null
+
 # ClickHouse database connection configuration
 # e.g. clickhouse:
 #   endpoint: "localhost:9000"
@@ -43,6 +46,7 @@ clickhouse:
   endpoint: null
   username: "default"
   password: ""
+  dynamicConifgUrl: null
 
 # PostgreSQL database connection configuration
 # e.g. postgres:
