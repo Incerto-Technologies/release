@@ -15,7 +15,7 @@ spec:
         {{- include "incerto-collector.selectorLabels" . | nindent 8 }}
     spec:
 
-      serviceAccountName: {{ if .Values.serviceAccountName }}{{ .Values.serviceAccountName }}{{ else }}incerto-reader-sa{{ end }}
+      serviceAccountName: {{ if .Values.serviceAccountName }}{{ .Values.serviceAccountName }}{{ else }}{{ include "incerto-collector.fullname" . }}-sa{{ end }}
 
       {{- if .Values.nodeSelector }}
       nodeSelector:
@@ -123,13 +123,10 @@ spec:
           - name: CLICKHOUSE_PASSWORD
             value: "{{ .Values.clickhouse.password }}"
           - name: INCERTO_DYNAMIC_CLICKHOUSE_CONFIG_URL
-            value: {{- if .Values.clickhouse.dynamicConfigUrl }}
-                    "{{ .Values.clickhouse.dynamicConfigUrl }}"
-                  {{- else if eq .Values.image.tag "pod" }}
-                    "https://incerto-magic-pill-public.s3.ap-south-1.amazonaws.com/collector-config/clickhouse/prod_clickhouse_k8s_worker.yaml"
-                  {{- else }}
-                    "https://incerto-magic-pill-public.s3.ap-south-1.amazonaws.com/collector-config/clickhouse/dev_clickhouse_k8s_worker.yaml"
-                  {{- end }}
+            value: {{- if .Values.clickhouse.dynamicConifgUrl }} "{{ .Values.clickhouse.dynamicConifgUrl }}"
+                 {{- else if eq .Values.image.tag "prod" }} "https://incerto-magic-pill-public.s3.ap-south-1.amazonaws.com/collector-config/clickhouse/prod_clickhouse_k8s_worker.yaml"
+                 {{- else }} "https://incerto-magic-pill-public.s3.ap-south-1.amazonaws.com/collector-config/clickhouse/dev_clickhouse_k8s_worker.yaml"
+                 {{- end }}
           - name: K8S_NODE_NAME
             valueFrom:
                 fieldRef:
