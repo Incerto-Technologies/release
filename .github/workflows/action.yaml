@@ -1,4 +1,4 @@
-name: Publish Helm Chart
+name: Publish Helm Charts
 
 on:
   push:
@@ -28,8 +28,9 @@ jobs:
         git config user.name "github-actions"
         git config user.email "github-actions@users.noreply.github.com"
 
-        # Package chart
+        # Package charts
         helm package collector/helm --destination /tmp
+        helm package tool/helm --destination /tmp
 
         # Check if gh-pages branch exists and switch to it
         if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
@@ -39,16 +40,16 @@ jobs:
           git rm -rf .
         fi
 
-        # Remove any existing chart files (if branch existed)
+        # Remove any existing charts files (if branch existed)
         rm -f *.tgz index.yaml
 
-        # Copy the new chart
+        # Copy the new charts
         cp /tmp/*.tgz .
 
-        # Create fresh index with only the latest chart
+        # Create fresh index with only the latest charts
         helm repo index . --url https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
 
         # Commit and push
         git add .
-        git commit -m "Latest chart release - $(date -u +%Y-%m-%dT%H:%M:%SZ)" || exit 0
+        git commit -m "Latest charts release - $(date -u +%Y-%m-%dT%H:%M:%SZ)" || exit 0
         git push origin gh-pages
