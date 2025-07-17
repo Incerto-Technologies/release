@@ -403,7 +403,7 @@ run_backend() {
     # stop and remove the existing container if it exists
     if [ "$(docker ps -aq -f name=$CONTAINER_NAME_BACKEND)" ]; then
         print_info "A container with the name $CONTAINER_NAME_BACKEND already exists. Removing it ..."
-        docker rm -f $CONTAINER_NAME_BACKEND
+        docker stop $CONTAINER_NAME_BACKEND && docker rm $CONTAINER_NAME_BACKEND
         print_success "Existing container removed."
     else
         print_info "No existing container with the name $CONTAINER_NAME_BACKEND found."
