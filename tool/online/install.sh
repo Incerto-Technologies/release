@@ -547,8 +547,6 @@ run_ai() {
         -v ~/.kube/config:/app/config \
         -v $(pwd)/ai/logs:/app/logs:rw \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
-    
-    
     printf "\n                      AI service is up and running.                      \n\n"
 }
 
