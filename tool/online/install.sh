@@ -543,7 +543,7 @@ run_ai() {
         --memory=${MEMORY_LIMIT_MB}m \
         --network host \
         --env-file $(pwd)/ai/.env \
-        -v ai_database:/my_agent_data.db:rw \
+        -v ai_database:/app/database:rw \
         -v ~/.kube/config:/app/config \
         -v $(pwd)/ai/logs:/app/logs:rw \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
