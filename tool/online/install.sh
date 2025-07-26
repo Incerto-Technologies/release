@@ -547,16 +547,6 @@ run_ai() {
         -v ~/.kube/config:/app/config \
         -v $(pwd)/ai/logs:/app/logs:rw \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
-    # docker run -d \
-    #     --name $CONTAINER_NAME_AI \
-    #     --pull=always \
-    #     --restart=always \
-    #     --memory=${MEMORY_LIMIT_MB}m \
-    #     --network host \
-    #     --env-file $(pwd)/ai/.env \
-    #     -v ~/.kube/config:/app/config \
-    #     -v $(pwd)/ai/logs:/app/logs:rw \
-    #     $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
 
