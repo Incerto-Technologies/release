@@ -543,8 +543,9 @@ run_ai() {
         --memory=${MEMORY_LIMIT_MB}m \
         --network host \
         --env-file $(pwd)/ai/.env \
+        -v ai_database:/my_agent_data.db:rw \
+        -v ~/.kube/config:/app/config \ 
         -v $(pwd)/ai/logs:/app/logs:rw \
-        -v ~/.kube/config:/app/config \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     printf "\n                      AI service is up and running.                      \n\n"
 }
