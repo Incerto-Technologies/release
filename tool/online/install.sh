@@ -536,6 +536,17 @@ run_ai() {
     
     # run the new container
     print_info "Starting a new container with the latest image..."
+    # docker run -d \
+    #     --name $CONTAINER_NAME_AI \
+    #     --pull=always \
+    #     --restart=always \
+    #     --memory=${MEMORY_LIMIT_MB}m \
+    #     --network host \
+    #     --env-file $(pwd)/ai/.env \
+    #     -v ai_database:/app/database:rw \
+    #     -v ~/.kube/config:/app/config \
+    #     -v $(pwd)/ai/logs:/app/logs:rw \
+    #     $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
     docker run -d \
         --name $CONTAINER_NAME_AI \
         --pull=always \
@@ -543,7 +554,6 @@ run_ai() {
         --memory=${MEMORY_LIMIT_MB}m \
         --network host \
         --env-file $(pwd)/ai/.env \
-        -v ai_database:/app/database:rw \
         -v ~/.kube/config:/app/config \
         -v $(pwd)/ai/logs:/app/logs:rw \
         $ECR_URL_AI/$IMAGE_NAME_AI:$IMAGE_TAG_AI
