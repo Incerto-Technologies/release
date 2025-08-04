@@ -1,0 +1,1 @@
+# Provision a 2vCPU, 4GB RAM instance or a 4vCPU, 8GB RAM instance. It should be amd64 x86 arch. No ARM arch has been tested yet.
