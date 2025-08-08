@@ -562,7 +562,7 @@ run_ai() {
 # setup auto-update cronjob
 setup_auto_update_cron() {
     # download auto-update script
-    curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/tool/online/auto-update.sh -o $(pwd)/auto-update.sh
+    curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/feature/auto-update/tool/online/auto-update.sh -o $(pwd)/auto-update.sh
     
     # setup cron-job
     TAG="# INCERTO_AUTO_UPDATE_CRON" # this is used as unique identifier for cron job, replace existing cronjobs
