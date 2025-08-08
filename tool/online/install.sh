@@ -48,6 +48,8 @@ IMAGE_TAG_AI="prod"
 CONTAINER_NAME_AI="incerto-ai"
 INCERTO_AI="true"
 
+INCERTO_AUTOUPDATE_CRON="false"
+
 # env
 ENV="prod"
 
@@ -105,6 +107,13 @@ while [ $# -gt 0 ]; do
             if [ -z "$INCERTO_AI" ]; then
                 print_error "Missing value for --ai. Please provide a true or false."
                 exit 1
+            fi
+            shift 2
+            ;;
+        --auto-update-cron)
+            INCERTO_AUTOUPDATE_CRON="$2"
+            if [ -z "$INCERTO_AUTOUPDATE_CRON" ]; then
+                INCERTO_AUTOUPDATE_CRON="false"
             fi
             shift 2
             ;;
@@ -550,6 +559,18 @@ run_ai() {
     printf "\n                      AI service is up and running.                      \n\n"
 }
 
+# setup auto-update cronjob
+setup_auto_update_cron() {
+    # download auto-update script
+    curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/tool/online/auto-update.sh -o $(pwd)/auto-update.sh
+    
+    # setup cron-job
+    TAG="# INCERTO_AUTO_UPDATE_CRON" # this is used as unique identifier for cron job, replace existing cronjobs
+    CRON_JOB="0 23 * * * $(pwd)/auto-update.sh --env $ENV --aws-access-key-id $AWS_ACCESS_KEY_ID --aws-secret-access-key $AWS_SECRET_ACCESS_KEY --aws-region $AWS_REGION --frontend $UPDATE_FE --backend $UPDATE_BE --ai $UPDATE_AI --domain $DOMAIN $TAG"
+
+    ( crontab -l 2>/dev/null | grep -vF "$TAG" ; echo "$CRON_JOB" ) | crontab -
+}
+
 # function to show container status
 show_status() {
     printf "\n"
@@ -584,6 +605,11 @@ main() {
     if [ "$INCERTO_AI" = "true" ]; then
         run_ai
     fi
+
+    if [ "$INCERTO_AUTOUPDATE_CRON" = "true" ]; then
+        setup_auto_update_cron
+    fi
+
 
     docker_cleanup
 
