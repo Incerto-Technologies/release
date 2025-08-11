@@ -563,10 +563,11 @@ run_ai() {
 setup_auto_update_cron() {
     # download auto-update script
     curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/feature/auto-update/tool/online/auto-update.sh -o $(pwd)/auto-update.sh
+    chmod a+x $(pwd)/auto-update.sh
     
     # setup cron-job
     TAG="# INCERTO_AUTO_UPDATE_CRON" # this is used as unique identifier for cron job, replace existing cronjobs
-    CRON_JOB="0 23 * * * $(pwd)/auto-update.sh --env $ENV --aws-access-key-id $AWS_ACCESS_KEY_ID --aws-secret-access-key $AWS_SECRET_ACCESS_KEY --aws-region $AWS_REGION --frontend $UPDATE_FE --backend $UPDATE_BE --ai $UPDATE_AI --auto-update-cron true --domain $DOMAIN $TAG"
+    CRON_JOB="* * * * * $(pwd)/auto-update.sh --env $ENV --aws-access-key-id $AWS_ACCESS_KEY_ID --aws-secret-access-key $AWS_SECRET_ACCESS_KEY --aws-region $AWS_REGION --domain $DOMAIN > $(pwd)/incerto-auto-update-cron.log 2>&1 $TAG"
 
     ( crontab -l 2>/dev/null | grep -vF "$TAG" ; echo "$CRON_JOB" ) | crontab -  || { print_error "Failed to create cron tab"; exit 1; }
 }

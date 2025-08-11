@@ -178,7 +178,7 @@ update_deployment() {
         print_info "\n\nUpdating...\n"
     
         cd ~ && \
-            curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/main/tool/online/install.sh | \
+            curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/feature/auto-update/tool/online/install.sh | \
             bash -s -- \
             --env $ENV \
             --aws-access-key-id $AWS_ACCESS_KEY_ID \
@@ -187,6 +187,7 @@ update_deployment() {
             --frontend $UPDATE_FE \
             --backend $UPDATE_BE \
             --ai $UPDATE_AI \
+            --auto-update-cron true \
             --domain $DOMAIN
     fi
 }
