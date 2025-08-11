@@ -564,10 +564,19 @@ setup_auto_update_cron() {
     # download auto-update script
     curl -sfL https://raw.githubusercontent.com/Incerto-Technologies/release/refs/heads/feature/auto-update/tool/online/auto-update.sh -o $(pwd)/auto-update.sh
     chmod a+x $(pwd)/auto-update.sh
-    
+
     # setup cron-job
     TAG="# INCERTO_AUTO_UPDATE_CRON" # this is used as unique identifier for cron job, replace existing cronjobs
-    CRON_JOB="* * * * * $(pwd)/auto-update.sh --env $ENV --aws-access-key-id $AWS_ACCESS_KEY_ID --aws-secret-access-key $AWS_SECRET_ACCESS_KEY --aws-region $AWS_REGION --domain $DOMAIN > $(pwd)/incerto-auto-update-cron.log 2>&1 $TAG"
+    
+    timezone=$(timedatectl show --property=Timezone --value)
+    if [[ $timezone =~ "UTC" ]]; then
+        CRON_FREQUENCY="30,59 17-22 * * *" # every 30th, 59th Minute, from 5:30PM to 11:00PM (UTC)
+    elif [[ $timezone == "Asia/Kolkata" ]]; then
+        CRON_FREQUENCY="0,30 0-4,23 * * *" # every 30 Minutes between 11PM to 5AM
+    else
+        CRON_FREQUENCY="30,59 17-22 * * *"
+    fi
+    CRON_JOB="$CRON_FREQUENCY $(pwd)/auto-update.sh --env $ENV --aws-access-key-id $AWS_ACCESS_KEY_ID --aws-secret-access-key $AWS_SECRET_ACCESS_KEY --aws-region $AWS_REGION --domain $DOMAIN >> $(pwd)/incerto-auto-update-cron.log 2>&1 $TAG"
 
     ( crontab -l 2>/dev/null | grep -vF "$TAG" ; echo "$CRON_JOB" ) | crontab -  || { print_error "Failed to create cron tab"; exit 1; }
 }

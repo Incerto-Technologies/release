@@ -1,5 +1,6 @@
 #!/bin/bash
 
+echo "Incerto AutoUpdate, checking for updates at: $(date)"
 
 set -e  # exit immediately if a command exits with a non-zero status
 
