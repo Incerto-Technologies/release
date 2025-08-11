@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Incerto AutoUpdate, checking for updates at: $(date)"
+echo "\n\n\n********************\nIncerto AutoUpdate, checking for updates at: $(date)\n\n"
 
 set -e  # exit immediately if a command exits with a non-zero status
 
@@ -190,6 +190,8 @@ update_deployment() {
             --ai $UPDATE_AI \
             --auto-update-cron true \
             --domain $DOMAIN
+    else
+        print_info "\nNo Updates\n"
     fi
 }
 
