@@ -483,8 +483,6 @@ run_backend() {
         --memory=${MEMORY_LIMIT_MB}m \
         --network host \
         --env-file $(pwd)/backend/.env \
-        -v /etc/ssl/certs:/etc/ssl/certs:ro \
-        -v /etc/ssl/private:/etc/ssl/private:ro \
         -v backend_resource_scripts_all:/app/src/resource/scripts/all:rw \
         -v backend_resource_pem:/app/src/resource/pem:rw \
         -v backend_resource_source:/app/src/resource/source:rw \
